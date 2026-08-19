@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import {
   GeminiLlmProvider,
   LlmProviderError,
@@ -62,19 +61,17 @@ describe("GeminiLlmProvider", () => {
       readme: "README",
     });
 
-    assert.strictEqual(report.enabled, true);
-    assert.strictEqual(report.suspiciousScore, 12);
-    assert.strictEqual(report.findings?.[0]?.severity, "high");
+    expect(report.enabled).toBe(true);
+    expect(report.suspiciousScore).toBe(12);
+    expect(report.findings?.[0]?.severity).toBe("high");
 
-    assert.ok(
+    expect(
       requestUrl?.endsWith(":generateContent"),
-      `expected URL ending with :generateContent, got ${requestUrl}`,
-    );
-    assert.ok(
+    ).toBeTruthy();
+    expect(
       requestUrl?.includes("gemini-2.0-flash"),
-      `expected URL to contain the model name, got ${requestUrl}`,
-    );
-    assert.strictEqual(requestHeaders?.["x-goog-api-key"], "test-key");
+    ).toBeTruthy();
+    expect(requestHeaders?.["x-goog-api-key"]).toBe("test-key");
 
     const contents = requestBody?.contents as unknown[];
     const systemInstruction = requestBody?.systemInstruction as {
@@ -84,19 +81,18 @@ describe("GeminiLlmProvider", () => {
       responseMimeType: string;
       temperature: number;
     };
-    assert.strictEqual(
+    expect(
       (contents?.[0] as { parts: { text: string }[] })?.parts?.[0]?.text,
-      JSON.stringify({
-        packageName: "demo",
-        version: "1.0.0",
-        description: "Demo package",
-        readme: "README",
-        packageJson: undefined,
-      }),
-    );
-    assert.strictEqual(systemInstruction?.parts?.[0]?.text, SYSTEM_PROMPT);
-    assert.strictEqual(generationConfig?.responseMimeType, "application/json");
-    assert.strictEqual(generationConfig?.temperature, 0);
+    ).toBe(JSON.stringify({
+      packageName: "demo",
+      version: "1.0.0",
+      description: "Demo package",
+      readme: "README",
+      packageJson: undefined,
+    }));
+    expect(systemInstruction?.parts?.[0]?.text).toBe(SYSTEM_PROMPT);
+    expect(generationConfig?.responseMimeType).toBe("application/json");
+    expect(generationConfig?.temperature).toBe(0);
   });
 
   it("is disabled without an API key", async () => {
@@ -107,7 +103,7 @@ describe("GeminiLlmProvider", () => {
       description: "",
       readme: "",
     });
-    assert.deepStrictEqual(report, {
+    expect(report).toEqual({
       enabled: false,
       reason: "LLM provider is not configured.",
     });
@@ -118,16 +114,18 @@ describe("GeminiLlmProvider", () => {
       candidates: [{ content: { parts: [{ text: "not json" }] } }],
     }), { status: 200 })) as typeof fetch;
     const provider = new GeminiLlmProvider({ apiKey: "test-key" });
-    await assert.rejects(
-      provider.scan({
+    try {
+      await provider.scan({
         packageName: "demo",
         version: "1.0.0",
         description: "",
         readme: "",
-      }),
-      (error: unknown) => error instanceof LlmProviderError &&
-        error.message.includes("invalid JSON"),
-    );
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(LlmProviderError);
+      expect((error as LlmProviderError).message).toContain("invalid JSON");
+    }
   });
 
   it("throws when response has no content", async () => {
@@ -135,15 +133,17 @@ describe("GeminiLlmProvider", () => {
       candidates: [],
     }), { status: 200 })) as typeof fetch;
     const provider = new GeminiLlmProvider({ apiKey: "test-key" });
-    await assert.rejects(
-      provider.scan({
+    try {
+      await provider.scan({
         packageName: "demo",
         version: "1.0.0",
         description: "",
         readme: "",
-      }),
-      (error: unknown) => error instanceof LlmProviderError &&
-        error.message.includes("no content"),
-    );
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(LlmProviderError);
+      expect((error as LlmProviderError).message).toContain("no content");
+    }
   });
 });

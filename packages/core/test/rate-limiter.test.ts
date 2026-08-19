@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import { TokenBucket } from "../src/scheduler/rate-limiter.js";
 
 describe("TokenBucket", () => {
@@ -17,41 +16,41 @@ describe("TokenBucket", () => {
     it("creates with default values", () => {
       bucket = new TokenBucket();
       const stats = bucket.getStats();
-      assert.strictEqual(stats.rate, 5);
-      assert.strictEqual(stats.maxBurst, 10);
-      assert.strictEqual(stats.available, 10);
+      expect(stats.rate).toBe(5);
+      expect(stats.maxBurst).toBe(10);
+      expect(stats.available).toBe(10);
     });
 
     it("creates with custom values", () => {
       bucket = new TokenBucket(3, 6);
       const stats = bucket.getStats();
-      assert.strictEqual(stats.rate, 3);
-      assert.strictEqual(stats.maxBurst, 6);
-      assert.strictEqual(stats.available, 6);
+      expect(stats.rate).toBe(3);
+      expect(stats.maxBurst).toBe(6);
+      expect(stats.available).toBe(6);
     });
 
     it("throws on zero tokensPerSecond", () => {
-      assert.throws(() => new TokenBucket(0, 10), RangeError);
+      expect(() => new TokenBucket(0, 10)).toThrow(RangeError);
     });
 
     it("throws on negative tokensPerSecond", () => {
-      assert.throws(() => new TokenBucket(-1, 10), RangeError);
+      expect(() => new TokenBucket(-1, 10)).toThrow(RangeError);
     });
 
     it("throws on zero maxBurst", () => {
-      assert.throws(() => new TokenBucket(5, 0), RangeError);
+      expect(() => new TokenBucket(5, 0)).toThrow(RangeError);
     });
 
     it("throws on negative maxBurst", () => {
-      assert.throws(() => new TokenBucket(5, -1), RangeError);
+      expect(() => new TokenBucket(5, -1)).toThrow(RangeError);
     });
 
     it("throws on NaN tokensPerSecond", () => {
-      assert.throws(() => new TokenBucket(NaN, 10), RangeError);
+      expect(() => new TokenBucket(NaN, 10)).toThrow(RangeError);
     });
 
     it("throws on Infinity maxBurst", () => {
-      assert.throws(() => new TokenBucket(5, Infinity), RangeError);
+      expect(() => new TokenBucket(5, Infinity)).toThrow(RangeError);
     });
   });
 
@@ -60,21 +59,21 @@ describe("TokenBucket", () => {
       bucket = new TokenBucket(5, 10);
       await bucket.consume(1);
       const stats = bucket.getStats();
-      assert.strictEqual(stats.available, 9);
+      expect(stats.available).toBe(9);
     });
 
     it("consumes multiple tokens at once", async () => {
       bucket = new TokenBucket(5, 10);
       await bucket.consume(3);
       const stats = bucket.getStats();
-      assert.strictEqual(stats.available, 7);
+      expect(stats.available).toBe(7);
     });
 
     it("consumes 0 tokens as no-op", async () => {
       bucket = new TokenBucket(5, 10);
       await bucket.consume(0);
       const stats = bucket.getStats();
-      assert.strictEqual(stats.available, 10);
+      expect(stats.available).toBe(10);
     });
 
     it("auto-allows requests larger than maxBurst", async () => {
@@ -82,64 +81,55 @@ describe("TokenBucket", () => {
       const before = bucket.getStats().available;
       await bucket.consume(100);
       const after = bucket.getStats().available;
-      assert.strictEqual(after, 0);
-      assert.ok(before === 10);
+      expect(after).toBe(0);
+      expect(before).toBe(10);
     });
 
     it("throws after dispose", async () => {
       bucket = new TokenBucket(5, 10);
       bucket.dispose();
-      await assert.rejects(
-        async () => bucket.consume(1),
-        /disposed/,
-      );
+      await expect(bucket.consume(1)).rejects.toThrow(/disposed/);
     });
 
     it("throws on negative count", async () => {
       bucket = new TokenBucket(5, 10);
-      await assert.rejects(
-        async () => bucket.consume(-1),
-        /non-negative/,
-      );
+      await expect(bucket.consume(-1)).rejects.toThrow(/non-negative/);
     });
 
     it("throws on NaN count", async () => {
       bucket = new TokenBucket(5, 10);
-      await assert.rejects(
-        async () => bucket.consume(NaN),
-        /non-negative/,
-      );
+      await expect(bucket.consume(NaN)).rejects.toThrow(/non-negative/);
     });
   });
 
   describe("tryConsume", () => {
     it("consumes tokens and returns true when available", () => {
       bucket = new TokenBucket(5, 10);
-      assert.strictEqual(bucket.tryConsume(2), true);
-      assert.strictEqual(bucket.getStats().available, 8);
+      expect(bucket.tryConsume(2)).toBe(true);
+      expect(bucket.getStats().available).toBe(8);
     });
 
     it("returns false when not enough tokens", () => {
       bucket = new TokenBucket(5, 10);
-      assert.strictEqual(bucket.tryConsume(11), true);
-      assert.strictEqual(bucket.getStats().available, 0);
+      expect(bucket.tryConsume(11)).toBe(true);
+      expect(bucket.getStats().available).toBe(0);
     });
 
     it("returns false after dispose", () => {
       bucket = new TokenBucket(5, 10);
       bucket.dispose();
-      assert.strictEqual(bucket.tryConsume(1), false);
+      expect(bucket.tryConsume(1)).toBe(false);
     });
 
     it("returns true for zero count", () => {
       bucket = new TokenBucket(5, 10);
-      assert.strictEqual(bucket.tryConsume(0), true);
-      assert.strictEqual(bucket.getStats().available, 10);
+      expect(bucket.tryConsume(0)).toBe(true);
+      expect(bucket.getStats().available).toBe(10);
     });
 
     it("handles negative count gracefully", () => {
       bucket = new TokenBucket(5, 10);
-      assert.strictEqual(bucket.tryConsume(-1), false);
+      expect(bucket.tryConsume(-1)).toBe(false);
     });
   });
 
@@ -152,17 +142,14 @@ describe("TokenBucket", () => {
       // But we can also test the dispose rejection.
       bucket.dispose();
 
-      await assert.rejects(
-        async () => bucket.consume(1),
-        /disposed/,
-      );
+      await expect(bucket.consume(1)).rejects.toThrow(/disposed/);
     });
 
     it("is safe to call multiple times", () => {
       bucket = new TokenBucket(5, 10);
       bucket.dispose();
       bucket.dispose();
-      assert.strictEqual(bucket.tryConsume(1), false);
+      expect(bucket.tryConsume(1)).toBe(false);
     });
   });
 
@@ -172,22 +159,22 @@ describe("TokenBucket", () => {
       bucket = new TokenBucket(500, 2);
       // Consume all burst.
       await bucket.consume(2);
-      assert.strictEqual(bucket.getStats().available, 0);
+      expect(bucket.getStats().available).toBe(0);
 
       // This will queue — but should resolve quickly (100ms tick).
       const start = Date.now();
       await bucket.consume(1);
       const elapsed = Date.now() - start;
       // With 500 tokens/s refill and 100ms tick, should resolve within ~200ms max.
-      assert.ok(elapsed < 500, `expected < 500ms, got ${elapsed}ms`);
-      assert.ok(bucket.getStats().available >= 0);
+      expect(elapsed).toBeLessThan(500);
+      expect(bucket.getStats().available).toBeGreaterThanOrEqual(0);
       bucket.dispose();
     });
 
     it("services consumers in FIFO order", async () => {
       bucket = new TokenBucket(1000, 1);
       await bucket.consume(1);
-      assert.strictEqual(bucket.getStats().available, 0);
+      expect(bucket.getStats().available).toBe(0);
 
       const results: number[] = [];
       const p1 = bucket.consume(1).then(() => results.push(1));
@@ -195,7 +182,7 @@ describe("TokenBucket", () => {
       const p3 = bucket.consume(1).then(() => results.push(3));
 
       await Promise.all([p1, p2, p3]);
-      assert.deepStrictEqual(results, [1, 2, 3]);
+      expect(results).toEqual([1, 2, 3]);
       bucket.dispose();
     });
   });

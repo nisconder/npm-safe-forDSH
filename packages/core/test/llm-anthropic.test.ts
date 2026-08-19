@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import {
   AnthropicLlmProvider,
   LlmProviderError,
@@ -53,34 +52,32 @@ describe("AnthropicLlmProvider", () => {
       readme: "README",
     });
 
-    assert.strictEqual(report.enabled, true);
-    assert.strictEqual(report.suspiciousScore, 7);
-    assert.strictEqual(report.findings?.[0]?.severity, "medium");
+    expect(report.enabled).toBe(true);
+    expect(report.suspiciousScore).toBe(7);
+    expect(report.findings?.[0]?.severity).toBe("medium");
 
-    assert.ok(
+    expect(
       requestUrl?.href.endsWith("/v1/messages"),
-      `expected URL ending with /v1/messages, got ${requestUrl?.href}`,
-    );
-    assert.strictEqual(requestHeaders?.get("x-api-key"), "test-key");
-    assert.strictEqual(requestHeaders?.get("anthropic-version"), "2023-06-01");
+    ).toBeTruthy();
+    expect(requestHeaders?.get("x-api-key")).toBe("test-key");
+    expect(requestHeaders?.get("anthropic-version")).toBe("2023-06-01");
 
-    assert.strictEqual(requestBody?.model, "claude-3-5-sonnet-latest");
-    assert.strictEqual(typeof requestBody?.max_tokens, "number");
-    assert.strictEqual(requestBody?.max_tokens, 4096);
-    assert.strictEqual(requestBody?.temperature, 0);
-    assert.strictEqual(typeof requestBody?.system, "string");
-    assert.ok(
+    expect(requestBody?.model).toBe("claude-3-5-sonnet-latest");
+    expect(typeof requestBody?.max_tokens).toBe("number");
+    expect(requestBody?.max_tokens).toBe(4096);
+    expect(requestBody?.temperature).toBe(0);
+    expect(typeof requestBody?.system).toBe("string");
+    expect(
       String(requestBody?.system).includes("npm package security analyst"),
-      "system prompt should mention 'npm package security analyst'",
-    );
+    ).toBeTruthy();
     const messages = requestBody?.messages as { role: string; content: string }[] | undefined;
-    assert.strictEqual(messages?.[0]?.role, "user");
-    assert.strictEqual(typeof messages?.[0]?.content, "string");
+    expect(messages?.[0]?.role).toBe("user");
+    expect(typeof messages?.[0]?.content).toBe("string");
     const content = JSON.parse(String(messages?.[0]?.content)) as Record<string, unknown>;
-    assert.strictEqual(content.packageName, "demo");
-    assert.strictEqual(content.version, "1.0.0");
-    assert.strictEqual(content.description, "Demo package");
-    assert.strictEqual(content.readme, "README");
+    expect(content.packageName).toBe("demo");
+    expect(content.version).toBe("1.0.0");
+    expect(content.description).toBe("Demo package");
+    expect(content.readme).toBe("README");
   });
 
   it("is disabled without an API key", async () => {
@@ -91,7 +88,7 @@ describe("AnthropicLlmProvider", () => {
       description: "",
       readme: "",
     });
-    assert.deepStrictEqual(report, {
+    expect(report).toEqual({
       enabled: false,
       reason: "LLM provider is not configured.",
     });
@@ -102,16 +99,18 @@ describe("AnthropicLlmProvider", () => {
       content: [{ type: "text", text: "not json" }],
     }), { status: 200 })) as typeof fetch;
     const provider = new AnthropicLlmProvider({ apiKey: "test-key" });
-    await assert.rejects(
-      provider.scan({
+    try {
+      await provider.scan({
         packageName: "demo",
         version: "1.0.0",
         description: "",
         readme: "",
-      }),
-      (error: unknown) => error instanceof LlmProviderError &&
-        error.message.includes("invalid JSON"),
-    );
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(LlmProviderError);
+      expect((error as LlmProviderError).message).toContain("invalid JSON");
+    }
   });
 
   it("throws when response has no content", async () => {
@@ -119,15 +118,17 @@ describe("AnthropicLlmProvider", () => {
       content: [],
     }), { status: 200 })) as typeof fetch;
     const provider = new AnthropicLlmProvider({ apiKey: "test-key" });
-    await assert.rejects(
-      provider.scan({
+    try {
+      await provider.scan({
         packageName: "demo",
         version: "1.0.0",
         description: "",
         readme: "",
-      }),
-      (error: unknown) => error instanceof LlmProviderError &&
-        error.message.includes("no content"),
-    );
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(LlmProviderError);
+      expect((error as LlmProviderError).message).toContain("no content");
+    }
   });
 });

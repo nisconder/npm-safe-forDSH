@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import {
   OpenAICompatibleLlmProvider,
   LlmProviderError,
@@ -48,10 +47,10 @@ describe("OpenAICompatibleLlmProvider", () => {
       readme: "README",
     });
 
-    assert.strictEqual(report.enabled, true);
-    assert.strictEqual(report.suspiciousScore, 12);
-    assert.strictEqual(report.findings?.[0]?.severity, "high");
-    assert.strictEqual((requestBody?.model), "gpt-4o-mini");
+    expect(report.enabled).toBe(true);
+    expect(report.suspiciousScore).toBe(12);
+    expect(report.findings?.[0]?.severity).toBe("high");
+    expect(requestBody?.model).toBe("gpt-4o-mini");
   });
 
   it("is disabled without an API key", async () => {
@@ -62,7 +61,7 @@ describe("OpenAICompatibleLlmProvider", () => {
       description: "",
       readme: "",
     });
-    assert.deepStrictEqual(report, {
+    expect(report).toEqual({
       enabled: false,
       reason: "LLM provider is not configured.",
     });
@@ -73,15 +72,17 @@ describe("OpenAICompatibleLlmProvider", () => {
       choices: [{ message: { content: "not json" } }],
     }), { status: 200 })) as typeof fetch;
     const provider = new OpenAICompatibleLlmProvider({ apiKey: "test-key" });
-    await assert.rejects(
-      provider.scan({
+    try {
+      await provider.scan({
         packageName: "demo",
         version: "1.0.0",
         description: "",
         readme: "",
-      }),
-      (error: unknown) => error instanceof LlmProviderError &&
-        error.message.includes("invalid JSON"),
-    );
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(LlmProviderError);
+      expect((error as LlmProviderError).message).toContain("invalid JSON");
+    }
   });
 });

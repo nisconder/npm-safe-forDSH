@@ -1,5 +1,4 @@
-import assert from 'node:assert';
-import { describe, it, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach, afterEach, expect } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -46,34 +45,34 @@ describe('LlmConfigManager', () => {
   it('defaults to disabled with openai provider', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     const config = manager.getConfig();
-    assert.strictEqual(config.enabled, false);
-    assert.strictEqual(config.provider, LlmProviderType.OpenAi);
-    assert.strictEqual(config.apiKey, undefined);
-    assert.strictEqual(config.maxTokens, 4096);
-    assert.strictEqual(manager.createProvider(), undefined);
+    expect(config.enabled).toBe(false);
+    expect(config.provider).toBe(LlmProviderType.OpenAi);
+    expect(config.apiKey).toBeUndefined();
+    expect(config.maxTokens).toBe(4096);
+    expect(manager.createProvider()).toBeUndefined();
   });
 
   it('returns masked status without exposing the full key', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ apiKey: 'sk-test-secret-key-1234', enabled: true });
     const status = manager.getStatus();
-    assert.strictEqual(status.configured, true);
-    assert.strictEqual(status.apiKey?.includes('secret'), false);
-    assert.ok(status.apiKey?.startsWith('sk-t'));
-    assert.ok(status.apiKey?.endsWith('1234'));
+    expect(status.configured).toBe(true);
+    expect(status.apiKey?.includes('secret')).toBe(false);
+    expect(status.apiKey?.startsWith('sk-t')).toBeTruthy();
+    expect(status.apiKey?.endsWith('1234')).toBeTruthy();
   });
 
   it('creates a provider when enabled and an api key is set', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ provider: LlmProviderType.OpenAi, apiKey: 'sk-openai', enabled: true });
     const provider = manager.createProvider();
-    assert.ok(provider);
+    expect(provider).toBeTruthy();
   });
 
   it('does not create a provider when disabled even with a key', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ apiKey: 'sk-openai', enabled: false });
-    assert.strictEqual(manager.createProvider(), undefined);
+    expect(manager.createProvider()).toBeUndefined();
   });
 
   it('falls back to environment variables for api key, base url, and model', () => {
@@ -83,11 +82,11 @@ describe('LlmConfigManager', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ enabled: true });
     const status = manager.getStatus();
-    assert.strictEqual(status.configured, true);
-    assert.strictEqual(status.baseUrl, 'https://openai.example.com');
-    assert.strictEqual(status.model, 'gpt-env');
+    expect(status.configured).toBe(true);
+    expect(status.baseUrl).toBe('https://openai.example.com');
+    expect(status.model).toBe('gpt-env');
     const provider = manager.createProvider();
-    assert.ok(provider);
+    expect(provider).toBeTruthy();
   });
 
   it('prefers persisted config over environment variables', () => {
@@ -96,15 +95,15 @@ describe('LlmConfigManager', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ apiKey: 'persisted-key', model: 'gpt-persisted', enabled: true });
     const status = manager.getStatus();
-    assert.strictEqual(status.configured, true);
-    assert.ok(status.apiKey?.startsWith('pers'));
-    assert.strictEqual(status.model, 'gpt-persisted');
+    expect(status.configured).toBe(true);
+    expect(status.apiKey?.startsWith('pers')).toBeTruthy();
+    expect(status.model).toBe('gpt-persisted');
   });
 
   it('ignores invalid provider values and falls back to openai', () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ provider: 'unknown' as LlmProviderType });
-    assert.strictEqual(manager.getConfig().provider, LlmProviderType.OpenAi);
+    expect(manager.getConfig().provider).toBe(LlmProviderType.OpenAi);
   });
 
   it('persists and reloads configuration', () => {
@@ -114,22 +113,22 @@ describe('LlmConfigManager', () => {
 
     const second = new LlmConfigManager(file);
     const config = second.getConfig();
-    assert.strictEqual(config.enabled, true);
-    assert.strictEqual(config.provider, LlmProviderType.Gemini);
-    assert.strictEqual(config.apiKey, 'gemini-key');
+    expect(config.enabled).toBe(true);
+    expect(config.provider).toBe(LlmProviderType.Gemini);
+    expect(config.apiKey).toBe('gemini-key');
   });
 
   it('uses provider-specific environment variables based on provider', () => {
     process.env.ANTHROPIC_API_KEY = 'anthropic-env-key';
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
     manager.setConfig({ provider: LlmProviderType.Anthropic, enabled: true });
-    assert.strictEqual(manager.getStatus().configured, true);
-    assert.ok(manager.createProvider());
+    expect(manager.getStatus().configured).toBe(true);
+    expect(manager.createProvider()).toBeTruthy();
   });
 
   it('testConnection returns false when not configured', async () => {
     const manager = new LlmConfigManager(path.join(tmpDir, 'llm.json'));
-    assert.strictEqual(await manager.testConnection(), false);
+    expect(await manager.testConnection()).toBe(false);
   });
 });
 
@@ -161,29 +160,29 @@ describe('NpmSafeEngine LLM config', () => {
   });
 
   it('exposes getLlmConfig, getLlmStatus, setLlmConfig, testLlmConnection', () => {
-    assert.strictEqual(engine.getLlmConfig().enabled, false);
-    assert.strictEqual(engine.getLlmConfig().maxTokens, 4096);
-    assert.strictEqual(engine.getLlmStatus().configured, false);
-    assert.strictEqual(typeof engine.testLlmConnection, 'function');
+    expect(engine.getLlmConfig().enabled).toBe(false);
+    expect(engine.getLlmConfig().maxTokens).toBe(4096);
+    expect(engine.getLlmStatus().configured).toBe(false);
+    expect(typeof engine.testLlmConnection).toBe('function');
   });
 
   it('updates the provider at runtime via setLlmConfig', () => {
     engine.setLlmConfig({ enabled: true, apiKey: 'sk-test' });
     const status = engine.getLlmStatus();
-    assert.strictEqual(status.enabled, true);
-    assert.strictEqual(status.configured, true);
+    expect(status.enabled).toBe(true);
+    expect(status.configured).toBe(true);
   });
 
   it('does not break when setLlmConfig disables LLM', () => {
     engine.setLlmConfig({ enabled: true, apiKey: 'sk-test' });
     engine.setLlmConfig({ enabled: false });
-    assert.strictEqual(engine.getLlmStatus().enabled, false);
-    assert.strictEqual(engine.getLlmConfig().enabled, false);
+    expect(engine.getLlmStatus().enabled).toBe(false);
+    expect(engine.getLlmConfig().enabled).toBe(false);
   });
 
   it('returns masked key in status and raw key in config', () => {
     engine.setLlmConfig({ apiKey: 'sk-my-secret-key' });
-    assert.strictEqual(engine.getLlmConfig().apiKey, 'sk-my-secret-key');
-    assert.notStrictEqual(engine.getLlmStatus().apiKey, 'sk-my-secret-key');
+    expect(engine.getLlmConfig().apiKey).toBe('sk-my-secret-key');
+    expect(engine.getLlmStatus().apiKey).not.toBe('sk-my-secret-key');
   });
 });

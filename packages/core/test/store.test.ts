@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import { DatabaseManager } from "../src/store/database.js";
 import { CacheManager, DEFAULT_CACHE_TTL_MS } from "../src/store/cache-manager.js";
 import { SecurityLevel, Severity } from "../src/scanner/types.js";
@@ -23,7 +22,7 @@ describe("DatabaseManager", () => {
 
   it("opens an in-memory database", () => {
     dbm = new DatabaseManager(":memory:");
-    assert.strictEqual(dbm.isOpen(), true);
+    expect(dbm.isOpen()).toBe(true);
   });
 
   it("applies schema (tables exist after open)", () => {
@@ -38,14 +37,14 @@ describe("DatabaseManager", () => {
       .all() as { name: string }[];
 
     const names = tables.map((t) => t.name);
-    assert.ok(names.includes("packages"));
-    assert.ok(names.includes("package_versions"));
-    assert.ok(names.includes("security_reports"));
-    assert.ok(names.includes("watchlist"));
-    assert.ok(names.includes("settings"));
-    assert.ok(names.includes("translations"));
-    assert.ok(names.includes("check_history"));
-    assert.ok(names.includes("_migrations"));
+    expect(names).toContain("packages");
+    expect(names).toContain("package_versions");
+    expect(names).toContain("security_reports");
+    expect(names).toContain("watchlist");
+    expect(names).toContain("settings");
+    expect(names).toContain("translations");
+    expect(names).toContain("check_history");
+    expect(names).toContain("_migrations");
   });
 
   it("records migration in _migrations table", () => {
@@ -54,9 +53,9 @@ describe("DatabaseManager", () => {
     const rows = db
       .prepare("SELECT name FROM _migrations ORDER BY id")
       .all() as { name: string }[];
-    assert.strictEqual(rows.length, 2);
-    assert.strictEqual(rows[0].name, "001_initial.sql");
-    assert.strictEqual(rows[1].name, "002_check_history.sql");
+    expect(rows.length).toBe(2);
+    expect(rows[0].name).toBe("001_initial.sql");
+    expect(rows[1].name).toBe("002_check_history.sql");
   });
 
   it("is idempotent (creating twice does not duplicate migrations)", () => {
@@ -65,26 +64,26 @@ describe("DatabaseManager", () => {
     // The second open should still work cleanly.
     dbm.close();
     const dbm2 = new DatabaseManager(":memory:");
-    assert.strictEqual(dbm2.isOpen(), true);
+    expect(dbm2.isOpen()).toBe(true);
     dbm2.close();
   });
 
   it("throws on getDb() after close", () => {
     dbm = new DatabaseManager(":memory:");
     dbm.close();
-    assert.throws(() => dbm.getDb(), /not open/);
+    expect(() => dbm.getDb()).toThrow(/not open/);
   });
 
   it("close is safe to call multiple times", () => {
     dbm = new DatabaseManager(":memory:");
     dbm.close();
     dbm.close();
-    assert.strictEqual(dbm.isOpen(), false);
+    expect(dbm.isOpen()).toBe(false);
   });
 
   it("creates database file on disk", () => {
     dbm = new DatabaseManager(":memory:");
-    assert.strictEqual(dbm.isOpen(), true);
+    expect(dbm.isOpen()).toBe(true);
   });
 });
 
@@ -130,16 +129,16 @@ describe("CacheManager", () => {
     it("returns null for non-existent package", async () => {
       setup();
       const result = await cache.getPackage("not-found");
-      assert.strictEqual(result, null);
+      expect(result).toBeNull();
     });
 
     it("stores and retrieves package metadata", async () => {
       setup();
       await cache.setPackage(mockPackageMeta);
       const result = await cache.getPackage("test-pkg");
-      assert.ok(result !== null);
-      assert.strictEqual(result!.name, "test-pkg");
-      assert.strictEqual(result!["dist-tags"].latest, "1.0.0");
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe("test-pkg");
+      expect(result!["dist-tags"].latest).toBe("1.0.0");
     });
 
     it("upserts existing package (second set overwrites)", async () => {
@@ -150,7 +149,7 @@ describe("CacheManager", () => {
       await cache.setPackage(updated);
 
       const result = await cache.getPackage("test-pkg");
-      assert.strictEqual(result!.description, "Updated");
+      expect(result!.description).toBe("Updated");
     });
 
     it("returns null when TTL has expired (getStalePackages)", async () => {
@@ -160,7 +159,7 @@ describe("CacheManager", () => {
 
       // With 1s TTL, package should NOT be stale yet.
       let stale = await cache.getStalePackages();
-      assert.deepStrictEqual(stale, []);
+      expect(stale).toEqual([]);
 
       // Artificially expire the TTL by updating the row.
       const db = dbm.getDb();
@@ -170,14 +169,14 @@ describe("CacheManager", () => {
 
       // Now it should be stale.
       stale = await cache.getStalePackages();
-      assert.deepStrictEqual(stale, ["test-pkg"]);
+      expect(stale).toEqual(["test-pkg"]);
     });
 
     it("returns package when TTL is still valid", async () => {
       setup();
       await cache.setPackage(mockPackageMeta);
       const result = await cache.getPackage("test-pkg");
-      assert.ok(result !== null);
+      expect(result).not.toBeNull();
     });
 
     it("honors sub-second TTLs (500ms cache expires)", async () => {
@@ -186,13 +185,13 @@ describe("CacheManager", () => {
       await cache.setPackage(mockPackageMeta);
 
       // Immediately after set, the row must still be fresh.
-      assert.ok((await cache.getPackage("test-pkg")) !== null);
-      assert.deepStrictEqual(await cache.getStalePackages(), []);
+      expect(await cache.getPackage("test-pkg")).not.toBeNull();
+      expect(await cache.getStalePackages()).toEqual([]);
 
       // Wait generously past the TTL (1.4x) so the row must have expired.
       await new Promise((resolve) => setTimeout(resolve, 700));
-      assert.strictEqual(await cache.getPackage("test-pkg"), null);
-      assert.deepStrictEqual(await cache.getStalePackages(), ["test-pkg"]);
+      expect(await cache.getPackage("test-pkg")).toBeNull();
+      expect(await cache.getStalePackages()).toEqual(["test-pkg"]);
     });
   });
 
@@ -200,7 +199,7 @@ describe("CacheManager", () => {
     it("returns null for non-existent report", async () => {
       setup();
       const result = await cache.getSecurityReport("test-pkg", "1.0.0");
-      assert.strictEqual(result, null);
+      expect(result).toBeNull();
     });
 
     it("stores and retrieves a static scan report", async () => {
@@ -216,11 +215,11 @@ describe("CacheManager", () => {
       };
       await cache.setSecurityReport(report);
       const result = await cache.getSecurityReport("test-pkg", "1.0.0");
-      assert.ok(result !== null);
-      assert.strictEqual(result!.packageName, "test-pkg");
-      assert.strictEqual(result!.score, 100);
-      assert.strictEqual(result!.overallLevel, SecurityLevel.Safe);
-      assert.strictEqual(result!.findings.length, 0);
+      expect(result).not.toBeNull();
+      expect(result!.packageName).toBe("test-pkg");
+      expect(result!.score).toBe(100);
+      expect(result!.overallLevel).toBe(SecurityLevel.Safe);
+      expect(result!.findings.length).toBe(0);
     });
 
     it("reconstructs SecurityLevel from score on read", async () => {
@@ -244,8 +243,8 @@ describe("CacheManager", () => {
       };
       await cache.setSecurityReport(report);
       const result = await cache.getSecurityReport("test-pkg", "1.0.0");
-      assert.strictEqual(result!.overallLevel, SecurityLevel.Suspicious);
-      assert.strictEqual(result!.score, 55);
+      expect(result!.overallLevel).toBe(SecurityLevel.Suspicious);
+      expect(result!.score).toBe(55);
     });
 
     it("upserts existing report for same package+version+scan_type", async () => {
@@ -280,8 +279,8 @@ describe("CacheManager", () => {
       await cache.setSecurityReport(r2);
 
       const result = await cache.getSecurityReport("test-pkg", "1.0.0");
-      assert.strictEqual(result!.score, 25);
-      assert.strictEqual(result!.overallLevel, SecurityLevel.Dangerous);
+      expect(result!.score).toBe(25);
+      expect(result!.overallLevel).toBe(SecurityLevel.Dangerous);
     });
   });
 
@@ -289,7 +288,7 @@ describe("CacheManager", () => {
     it("returns empty array initially", async () => {
       setup();
       const list = await cache.getWatchlist();
-      assert.deepStrictEqual(list, []);
+      expect(list).toEqual([]);
     });
 
     it("adds and retrieves watched packages", async () => {
@@ -300,7 +299,7 @@ describe("CacheManager", () => {
       await cache.addToWatchlist("test-pkg");
       await cache.addToWatchlist("pkg-b");
       const list = await cache.getWatchlist();
-      assert.deepStrictEqual(list, ["test-pkg", "pkg-b"]);
+      expect(list).toEqual(["test-pkg", "pkg-b"]);
     });
 
     it("addToWatchlist is idempotent", async () => {
@@ -309,7 +308,7 @@ describe("CacheManager", () => {
       await cache.addToWatchlist("test-pkg");
       await cache.addToWatchlist("test-pkg");
       const list = await cache.getWatchlist();
-      assert.deepStrictEqual(list, ["test-pkg"]);
+      expect(list).toEqual(["test-pkg"]);
     });
 
     it("removes watched packages", async () => {
@@ -321,14 +320,14 @@ describe("CacheManager", () => {
       await cache.addToWatchlist("pkg-b");
       await cache.removeFromWatchlist("test-pkg");
       const list = await cache.getWatchlist();
-      assert.deepStrictEqual(list, ["pkg-b"]);
+      expect(list).toEqual(["pkg-b"]);
     });
 
     it("removeFromWatchlist is idempotent", async () => {
       setup();
       await cache.removeFromWatchlist("not-exist");
       const list = await cache.getWatchlist();
-      assert.deepStrictEqual(list, []);
+      expect(list).toEqual([]);
     });
   });
 
@@ -336,14 +335,14 @@ describe("CacheManager", () => {
     it("returns null for unset key", async () => {
       setup();
       const val = await cache.getSetting("missing");
-      assert.strictEqual(val, null);
+      expect(val).toBeNull();
     });
 
     it("stores and retrieves a setting", async () => {
       setup();
       await cache.setSetting("theme", "dark");
       const val = await cache.getSetting("theme");
-      assert.strictEqual(val, "dark");
+      expect(val).toBe("dark");
     });
 
     it("overwrites existing setting", async () => {
@@ -351,7 +350,7 @@ describe("CacheManager", () => {
       await cache.setSetting("theme", "dark");
       await cache.setSetting("theme", "light");
       const val = await cache.getSetting("theme");
-      assert.strictEqual(val, "light");
+      expect(val).toBe("light");
     });
   });
 
@@ -359,7 +358,7 @@ describe("CacheManager", () => {
     it("returns empty when no packages cached", async () => {
       setup();
       const stale = await cache.getStalePackages();
-      assert.deepStrictEqual(stale, []);
+      expect(stale).toEqual([]);
     });
 
     it("returns packages with expired TTL", async () => {
@@ -374,14 +373,14 @@ describe("CacheManager", () => {
       ).run("test-pkg");
 
       const stale = await cache.getStalePackages();
-      assert.deepStrictEqual(stale, ["test-pkg"]);
+      expect(stale).toEqual(["test-pkg"]);
     });
 
     it("does not return fresh packages", async () => {
       setup();
       await cache.setPackage(mockPackageMeta);
       const stale = await cache.getStalePackages();
-      assert.deepStrictEqual(stale, []);
+      expect(stale).toEqual([]);
     });
   });
 });

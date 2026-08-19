@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import { NpmRegistryClient } from "../src/registry/client.js";
 import { NpmRegistryError } from "../src/registry/types.js";
 import type { PackageMetadata } from "../src/registry/types.js";
@@ -71,8 +70,8 @@ describe("NpmRegistryClient", () => {
       mockFetch(200, mockPackageMeta);
       const client = new NpmRegistryClient();
       const result = await client.getPackageMetadata("test-pkg");
-      assert.strictEqual(result.name, "test-pkg");
-      assert.strictEqual(result["dist-tags"].latest, "1.0.0");
+      expect(result.name).toBe("test-pkg");
+      expect(result["dist-tags"].latest).toBe("1.0.0");
     });
 
     it("retries and succeeds on transient failure", async () => {
@@ -97,42 +96,38 @@ describe("NpmRegistryClient", () => {
 
       const client = new NpmRegistryClient();
       const result = await client.getPackageMetadata("test-pkg");
-      assert.strictEqual(result.name, "test-pkg");
-      assert.strictEqual(callCount, 3);
+      expect(result.name).toBe("test-pkg");
+      expect(callCount).toBe(3);
     });
 
     it("throws NpmRegistryError after all retries exhausted", async () => {
       mockFetch(500, { error: "internal" });
       const client = new NpmRegistryClient();
 
-      await assert.rejects(
-        async () => client.getPackageMetadata("test-pkg"),
-        (err: unknown) => {
-          assert.ok(err instanceof NpmRegistryError);
-          assert.strictEqual(
-            (err as NpmRegistryError).message.includes("500"),
-            true,
-          );
-          return true;
-        },
-      );
+      try {
+        await client.getPackageMetadata("test-pkg");
+        expect.unreachable("should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(NpmRegistryError);
+        expect(
+          (err as NpmRegistryError).message.includes("500"),
+        ).toBe(true);
+      }
     });
 
     it("throws NpmRegistryError on network failure", async () => {
       mockFetchReject(new Error("Network error"));
       const client = new NpmRegistryClient();
 
-      await assert.rejects(
-        async () => client.getPackageMetadata("test-pkg"),
-        (err: unknown) => {
-          assert.ok(err instanceof NpmRegistryError);
-          assert.strictEqual(
-            (err as NpmRegistryError).message.includes("attempts"),
-            true,
-          );
-          return true;
-        },
-      );
+      try {
+        await client.getPackageMetadata("test-pkg");
+        expect.unreachable("should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(NpmRegistryError);
+        expect(
+          (err as NpmRegistryError).message.includes("attempts"),
+        ).toBe(true);
+      }
     });
   });
 
@@ -166,9 +161,9 @@ describe("NpmRegistryClient", () => {
       const client = new NpmRegistryClient();
       const results = await client.searchPackages("test", 5);
 
-      assert.strictEqual(results.length, 1);
-      assert.strictEqual(results[0].package.name, "test-pkg");
-      assert.strictEqual(results[0].searchScore, 0.8);
+      expect(results.length).toBe(1);
+      expect(results[0].package.name).toBe("test-pkg");
+      expect(results[0].searchScore).toBe(0.8);
     });
 
     it("falls back to final score when searchScore is absent", async () => {
@@ -198,7 +193,7 @@ describe("NpmRegistryClient", () => {
       const client = new NpmRegistryClient();
       const results = await client.searchPackages("test");
 
-      assert.strictEqual(results[0].searchScore, 0.75);
+      expect(results[0].searchScore).toBe(0.75);
     });
   });
 
@@ -222,7 +217,7 @@ describe("NpmRegistryClient", () => {
       await client.getPackageMetadata("test-pkg");
 
       const dispatcher = (capturedInit as { dispatcher?: unknown } | undefined)?.dispatcher;
-      assert.ok(dispatcher, "expected a proxy dispatcher in fetch init");
+      expect(dispatcher).toBeTruthy();
     });
 
     it("bypasses proxy for hosts listed in NO_PROXY", async () => {
@@ -244,7 +239,7 @@ describe("NpmRegistryClient", () => {
       await client.getPackageMetadata("test-pkg");
 
       const dispatcher = (capturedInit as { dispatcher?: unknown } | undefined)?.dispatcher;
-      assert.strictEqual(dispatcher, undefined);
+      expect(dispatcher).toBeUndefined();
     });
 
     it("respects explicit proxy option over env vars", async () => {
@@ -268,7 +263,7 @@ describe("NpmRegistryClient", () => {
       await client.getPackageMetadata("test-pkg");
 
       const dispatcher = (capturedInit as { dispatcher?: unknown } | undefined)?.dispatcher;
-      assert.ok(dispatcher, "expected proxy dispatcher");
+      expect(dispatcher).toBeTruthy();
     });
 
     it("uses no dispatcher when no proxy is configured", async () => {
@@ -295,7 +290,7 @@ describe("NpmRegistryClient", () => {
       await client.getPackageMetadata("test-pkg");
 
       const dispatcher = (capturedInit as { dispatcher?: unknown } | undefined)?.dispatcher;
-      assert.strictEqual(dispatcher, undefined);
+      expect(dispatcher).toBeUndefined();
     });
   });
 });

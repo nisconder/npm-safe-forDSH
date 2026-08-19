@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import { RefreshScheduler } from "../src/scheduler/refresh-scheduler.js";
 import { NpmRegistryClient } from "../src/registry/client.js";
 import { TokenBucket } from "../src/scheduler/rate-limiter.js";
@@ -80,9 +79,9 @@ describe("RefreshScheduler", () => {
 
     const succeeded = await scheduler.refreshPackage("watch-pkg");
 
-    assert.strictEqual(succeeded, true);
-    assert.ok(events.some((e) => e.startsWith("start:watch-pkg")));
-    assert.ok(events.some((e) => e.startsWith("complete:watch-pkg")));
+    expect(succeeded).toBe(true);
+    expect(events.some((e) => e.startsWith("start:watch-pkg"))).toBeTruthy();
+    expect(events.some((e) => e.startsWith("complete:watch-pkg"))).toBeTruthy();
   });
 
   it("emits refresh:error on failure", async () => {
@@ -97,8 +96,8 @@ describe("RefreshScheduler", () => {
 
     const succeeded = await scheduler.refreshPackage("bad-pkg");
 
-    assert.strictEqual(succeeded, false);
-    assert.ok(events.some((e) => e === "error:bad-pkg"));
+    expect(succeeded).toBe(false);
+    expect(events.some((e) => e === "error:bad-pkg")).toBeTruthy();
   });
 
   it("respects rate limiter before fetching", async () => {
@@ -117,7 +116,7 @@ describe("RefreshScheduler", () => {
     }) as typeof fetch;
 
     await scheduler.refreshPackage("watch-pkg");
-    assert.strictEqual(fetchCount, 1);
+    expect(fetchCount).toBe(1);
   });
 
   it("saves report to cache after refresh", async () => {
@@ -136,8 +135,8 @@ describe("RefreshScheduler", () => {
     await scheduler.refreshPackage("watch-pkg");
 
     const report = await cache.getSecurityReport("watch-pkg", "1.0.0");
-    assert.ok(report !== null);
-    assert.strictEqual(report!.score, 100);
+    expect(report).not.toBeNull();
+    expect(report!.score).toBe(100);
   });
 
   it("stop prevents future cycles but not in-flight refresh", () => {
