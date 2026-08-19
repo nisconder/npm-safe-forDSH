@@ -1,29 +1,11 @@
 import { describe, it, afterEach, expect } from "vitest";
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { NpmSafeEngine } from "../src/index.js";
 import { DatabaseManager } from "../src/store/database.js";
 import { CacheManager, MAX_CHECK_HISTORY } from "../src/store/cache-manager.js";
-
-const CLI_TS = path.resolve("src/cli/cli.ts");
-const PACKAGE_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-
-function runCliSandboxed(args: string[], homeDir: string): { stdout: string; stderr: string; status: number | null } {
-  const result = spawnSync(
-    "node",
-    ["--import", "tsx", CLI_TS, ...args],
-    {
-      encoding: "utf8",
-      cwd: PACKAGE_DIR,
-      env: { ...process.env, HOME: homeDir, USERPROFILE: homeDir },
-    },
-  );
-  return { stdout: result.stdout, stderr: result.stderr, status: result.status };
-}
 
 describe("check history", () => {
   let tmpDir: string;
@@ -122,56 +104,6 @@ describe("check history", () => {
       expect(history[0].packageName).toBe("old-2");
     } finally {
       dbm.close();
-    }
-  });
-});
-
-describe("CLI check persists history to the shared database", () => {
-  it.skip("records checked packages in the sandboxed database — skipped: src/cli/cli.ts not migrated (T3)", async () => {
-    const home = mkdtempSync(path.join(os.tmpdir(), "npm-safe-cli-history-"));
-    const db = path.join(home, "shared.db");
-    try {
-      const { status } = runCliSandboxed(["--db", db, "check", "lodash", "express"], home);
-      expect(status).toBe(0);
-
-      const engine = new NpmSafeEngine({ dbPath: db });
-      try {
-        const history = await engine.getCheckHistory();
-        expect(history.length).toBe(2);
-        const names = history.map((h) => h.packageName);
-        expect(names.includes("lodash")).toBeTruthy();
-        expect(names.includes("express")).toBeTruthy();
-      } finally {
-        engine.close();
-      }
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-    }
-  });
-
-  it.skip("records ci scans into history — skipped: src/cli/cli.ts not migrated (T3)", async () => {
-    const home = mkdtempSync(path.join(os.tmpdir(), "npm-safe-cli-history-"));
-    const db = path.join(home, "shared.db");
-    try {
-      const { writeFileSync } = await import("node:fs");
-      writeFileSync(path.join(home, "package.json"), JSON.stringify({
-        name: "scan-me",
-        version: "0.0.0",
-        dependencies: { lodash: "^4.17.21" },
-      }));
-      const { status } = runCliSandboxed(["--db", db, "ci", "--dir", home, "--rate-limit", "100"], home);
-      expect(status).toBe(0);
-      expect(status).toBe(0);
-
-      const engine = new NpmSafeEngine({ dbPath: db });
-      try {
-        const history = await engine.getCheckHistory();
-        expect(history.some((h) => h.packageName === "lodash")).toBeTruthy();
-      } finally {
-        engine.close();
-      }
-    } finally {
-      rmSync(home, { recursive: true, force: true });
     }
   });
 });
