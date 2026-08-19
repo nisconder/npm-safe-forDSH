@@ -1,5 +1,4 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, expect } from "vitest";
 import { StaticAnalyzer } from "../src/scanner/static-rules.js";
 import {
   SecurityLevel,
@@ -26,10 +25,10 @@ describe("install-script rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "install-script",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Critical);
-    assert.strictEqual(finding.category, FindingCategory.InstallScript);
-    assert.ok(finding.message.includes("postinstall"));
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Critical);
+    expect(finding!.category).toBe(FindingCategory.InstallScript);
+    expect(finding!.message.includes("postinstall")).toBeTruthy();
   });
 
   it("detects preinstall script with wget to IP", () => {
@@ -44,7 +43,7 @@ describe("install-script rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "install-script",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("detects install script (not just postinstall/preinstall)", () => {
@@ -59,7 +58,7 @@ describe("install-script rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "install-script",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not flag curl to a domain (not IP)", () => {
@@ -74,7 +73,7 @@ describe("install-script rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "install-script",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag non-lifecycle scripts", () => {
@@ -89,7 +88,7 @@ describe("install-script rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "install-script",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag when no scripts exist", () => {
@@ -98,7 +97,7 @@ describe("install-script rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "install-script",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -115,9 +114,9 @@ describe("eval-obfuscation rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "eval-obfuscation",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.High);
-    assert.strictEqual(finding.category, FindingCategory.CodeObfuscation);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.High);
+    expect(finding!.category).toBe(FindingCategory.CodeObfuscation);
   });
 
   it("detects Function() with unicode escapes", () => {
@@ -126,7 +125,7 @@ describe("eval-obfuscation rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "eval-obfuscation",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not flag eval() without encoded strings", () => {
@@ -136,7 +135,7 @@ describe("eval-obfuscation rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "eval-obfuscation",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag encoded strings without eval", () => {
@@ -146,7 +145,7 @@ describe("eval-obfuscation rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "eval-obfuscation",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -164,8 +163,8 @@ describe("base64-shell rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "base64-shell",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.High);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.High);
   });
 
   it("detects base64 with curl", () => {
@@ -175,7 +174,7 @@ describe("base64-shell rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "base64-shell",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not flag base64 without shell keywords", () => {
@@ -185,7 +184,7 @@ describe("base64-shell rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "base64-shell",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag shell keywords without base64", () => {
@@ -194,7 +193,7 @@ describe("base64-shell rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "base64-shell",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -212,9 +211,9 @@ describe("binary-links rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "binary-links",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Medium);
-    assert.strictEqual(finding.category, FindingCategory.BinaryDownload);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Medium);
+    expect(finding!.category).toBe(FindingCategory.BinaryDownload);
   });
 
   it("detects link to .sh file", () => {
@@ -223,7 +222,7 @@ describe("binary-links rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "binary-links",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("detects link to .ps1 file", () => {
@@ -233,7 +232,7 @@ describe("binary-links rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "binary-links",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("detects link to .bat file", () => {
@@ -242,7 +241,7 @@ describe("binary-links rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "binary-links",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not match URL with .com TLD (false positive fixed)", () => {
@@ -252,7 +251,7 @@ describe("binary-links rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "binary-links",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -269,9 +268,9 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.High);
-    assert.ok(finding.message.includes("lodash"));
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.High);
+    expect(finding!.message.includes("lodash")).toBeTruthy();
   });
 
   it("detects off-by-one typosquatting", () => {
@@ -280,8 +279,8 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.ok(finding);
-    assert.ok(finding.message.includes("express"));
+    expect(finding).toBeTruthy();
+    expect(finding!.message.includes("express")).toBeTruthy();
   });
 
   it("detects scoped typosquatting (@scope/commader)", () => {
@@ -290,8 +289,8 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.ok(finding);
-    assert.ok(finding.message.includes("commander"));
+    expect(finding).toBeTruthy();
+    expect(finding!.message.includes("commander")).toBeTruthy();
   });
 
   it("does not flag exact match of popular package", () => {
@@ -300,7 +299,7 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag completely different name", () => {
@@ -309,7 +308,7 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag package without name field", () => {
@@ -317,7 +316,7 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag very short names (< 3 chars)", () => {
@@ -326,7 +325,7 @@ describe("typosquatting rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "typosquatting",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -343,9 +342,9 @@ describe("secret-exposure rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "secret-exposure",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Critical);
-    assert.strictEqual(finding.category, FindingCategory.SensitiveExposure);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Critical);
+    expect(finding!.category).toBe(FindingCategory.SensitiveExposure);
   });
 
   it("detects AWS access key in README", () => {
@@ -354,7 +353,7 @@ describe("secret-exposure rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "secret-exposure",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("detects SSH private key block in README", () => {
@@ -365,7 +364,7 @@ MIIEpAIBAAKCAQEA...
     const finding = report.findings.find(
       (f) => f.ruleId === "secret-exposure",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("detects secret in package.json fields", () => {
@@ -377,7 +376,7 @@ MIIEpAIBAAKCAQEA...
     const finding = report.findings.find(
       (f) => f.ruleId === "secret-exposure",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not flag clean README and package.json", () => {
@@ -386,7 +385,7 @@ MIIEpAIBAAKCAQEA...
     const finding = report.findings.find(
       (f) => f.ruleId === "secret-exposure",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -408,8 +407,8 @@ describe("child-process-browser rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "child-process-browser",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.High);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.High);
   });
 
   it("detects child_process in package with browser field", () => {
@@ -419,7 +418,7 @@ describe("child-process-browser rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "child-process-browser",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("detects child_process in package named like a frontend lib", () => {
@@ -429,7 +428,7 @@ describe("child-process-browser rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "child-process-browser",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not flag child_process in backend package", () => {
@@ -439,7 +438,7 @@ describe("child-process-browser rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "child-process-browser",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag browser package without child_process", () => {
@@ -452,7 +451,7 @@ describe("child-process-browser rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "child-process-browser",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -473,9 +472,9 @@ describe("suspicious-build-metadata rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "suspicious-build-metadata",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Low);
-    assert.strictEqual(finding.category, FindingCategory.Informational);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Low);
+    expect(finding!.category).toBe(FindingCategory.Informational);
   });
 
   it("does not flag known underscore-prefixed fields", () => {
@@ -490,7 +489,7 @@ describe("suspicious-build-metadata rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "suspicious-build-metadata",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag package without underscore fields", () => {
@@ -499,7 +498,7 @@ describe("suspicious-build-metadata rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "suspicious-build-metadata",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -516,9 +515,9 @@ describe("homograph-attack rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "homograph-attack",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Critical);
-    assert.strictEqual(finding.category, FindingCategory.HomographAttack);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Critical);
+    expect(finding!.category).toBe(FindingCategory.HomographAttack);
   });
 
   it("detects non-ASCII in scoped package name", () => {
@@ -527,7 +526,7 @@ describe("homograph-attack rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "homograph-attack",
     );
-    assert.ok(finding);
+    expect(finding).toBeTruthy();
   });
 
   it("does not flag pure ASCII package name", () => {
@@ -536,7 +535,7 @@ describe("homograph-attack rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "homograph-attack",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag when no name field", () => {
@@ -544,7 +543,7 @@ describe("homograph-attack rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "homograph-attack",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -567,9 +566,9 @@ describe("registry-mismatch rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "registry-mismatch",
     );
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Medium);
-    assert.strictEqual(finding.category, FindingCategory.RegistryMismatch);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Medium);
+    expect(finding!.category).toBe(FindingCategory.RegistryMismatch);
   });
 
   it("does not flag standard npm registry", () => {
@@ -584,7 +583,7 @@ describe("registry-mismatch rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "registry-mismatch",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 
   it("does not flag when no publishConfig", () => {
@@ -593,7 +592,7 @@ describe("registry-mismatch rule", () => {
     const finding = report.findings.find(
       (f) => f.ruleId === "registry-mismatch",
     );
-    assert.strictEqual(finding, undefined);
+    expect(finding).toBe(undefined);
   });
 });
 
@@ -610,17 +609,17 @@ describe("StaticAnalyzer scoring", () => {
       version: "1.0.0",
     };
     const report = analyzer.analyze("# Just a normal README", pkg);
-    assert.strictEqual(report.score, 100);
-    assert.strictEqual(report.overallLevel, SecurityLevel.Safe);
-    assert.strictEqual(report.findings.length, 0);
+    expect(report.score).toBe(100);
+    expect(report.overallLevel).toBe(SecurityLevel.Safe);
+    expect(report.findings.length).toBe(0);
   });
 
   it("returns score < 80 for a single Critical finding", () => {
     const readme = "Token: npm_abcdefghijklmnopqrstuvwxyz";
     const report = analyzer.analyze(readme);
-    assert.ok(report.score < 80);
-    assert.strictEqual(report.score, 75);
-    assert.strictEqual(report.overallLevel, SecurityLevel.Suspicious);
+    expect(report.score < 80).toBeTruthy();
+    expect(report.score).toBe(75);
+    expect(report.overallLevel).toBe(SecurityLevel.Suspicious);
   });
 
   it("clamps score to minimum 0", () => {
@@ -636,27 +635,27 @@ describe("StaticAnalyzer scoring", () => {
       -----END RSA PRIVATE KEY-----
     `;
     const report = analyzer.analyze(readme, pkg);
-    assert.strictEqual(report.score, 0);
-    assert.strictEqual(report.overallLevel, SecurityLevel.Unknown);
+    expect(report.score).toBe(0);
+    expect(report.overallLevel).toBe(SecurityLevel.Unknown);
   });
 
   it("levels: >=80 Safe, >=50 Suspicious, >=20 Dangerous, <20 Unknown", () => {
     {
       const pkg = { name: "a", version: "1.0.0" };
       const r = analyzer.analyze("", pkg);
-      assert.strictEqual(r.overallLevel, SecurityLevel.Safe);
+      expect(r.overallLevel).toBe(SecurityLevel.Safe);
     }
     {
       // npm token = Critical -> 100-25 = 75 -> Suspicious
       const r = analyzer.analyze("npm_abcdefghijklmnopqrstuvwxyz");
-      assert.strictEqual(r.overallLevel, SecurityLevel.Suspicious);
+      expect(r.overallLevel).toBe(SecurityLevel.Suspicious);
     }
     {
       // npm token + AWS key = 2*Critical -> 100-50 = 50 -> Suspicious
       const r = analyzer.analyze(
         "npm_abcdefghijklmnopqrstuvwxyz\nAKIA1234567890ABCDEF",
       );
-      assert.strictEqual(r.overallLevel, SecurityLevel.Suspicious);
+      expect(r.overallLevel).toBe(SecurityLevel.Suspicious);
     }
     {
       // npm token in README + AWS in README + SSH in README + npm in pkg = 4*Critical -> 100-100=0 → Unknown
@@ -668,28 +667,28 @@ describe("StaticAnalyzer scoring", () => {
         "npm_zxcvbnmasdfghjklqwertyuiopasd\nAKIA1234567890ABCDEF\n-----BEGIN RSA PRIVATE KEY-----\nkeydata\n-----END RSA PRIVATE KEY-----",
         pkg2,
       );
-      assert.strictEqual(r.overallLevel, SecurityLevel.Unknown);
+      expect(r.overallLevel).toBe(SecurityLevel.Unknown);
     }
   });
 
   it("fills packageName and version from packageJson", () => {
     const pkg = { name: "my-pkg", version: "2.3.4" };
     const report = analyzer.analyze("", pkg);
-    assert.strictEqual(report.packageName, "my-pkg");
-    assert.strictEqual(report.version, "2.3.4");
+    expect(report.packageName).toBe("my-pkg");
+    expect(report.version).toBe("2.3.4");
   });
 
   it("uses defaults when packageJson is undefined", () => {
     const report = analyzer.analyze("");
-    assert.strictEqual(report.packageName, "<unknown>");
-    assert.strictEqual(report.version, "0.0.0");
-    assert.strictEqual(report.score, 100);
+    expect(report.packageName).toBe("<unknown>");
+    expect(report.version).toBe("0.0.0");
+    expect(report.score).toBe(100);
   });
 
   it("includes scannedAt ISO 8601 timestamp", () => {
     const report = analyzer.analyze("");
     const date = new Date(report.scannedAt);
-    assert.ok(!isNaN(date.getTime()));
+    expect(!isNaN(date.getTime())).toBeTruthy();
   });
 });
 
@@ -721,9 +720,9 @@ describe("StaticAnalyzer with custom rules", () => {
       },
     ]);
     const report = customAnalyzer.analyze("");
-    assert.strictEqual(report.findings.length, 1);
-    assert.strictEqual(report.findings[0].ruleId, "custom-rule");
-    assert.strictEqual(report.score, 85); // 100 - 15
+    expect(report.findings.length).toBe(1);
+    expect(report.findings[0].ruleId).toBe("custom-rule");
+    expect(report.score).toBe(85); // 100 - 15
   });
 
   it("skips disabled rules", () => {
@@ -749,7 +748,7 @@ describe("StaticAnalyzer with custom rules", () => {
       },
     ]);
     const report = analyzer2.analyze("");
-    assert.strictEqual(report.findings.length, 0);
-    assert.strictEqual(report.score, 100);
+    expect(report.findings.length).toBe(0);
+    expect(report.score).toBe(100);
   });
 });

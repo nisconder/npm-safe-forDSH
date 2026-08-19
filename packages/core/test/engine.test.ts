@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import { NpmSafeEngine } from "../src/index.js";
 import { SecurityLevel } from "../src/scanner/types.js";
 import type { PackageMetadata } from "../src/registry/types.js";
@@ -89,10 +88,10 @@ describe("NpmSafeEngine", () => {
       const first = await engine.checkPackage("safe-lib");
       const second = await engine.checkPackage("safe-lib");
 
-      assert.strictEqual(first.security.llmScan?.enabled, true);
-      assert.strictEqual(first.security.llmScan?.suspiciousScore, 5);
-      assert.strictEqual(second.security.llmScan?.enabled, true);
-      assert.strictEqual(llmCalls, 1);
+      expect(first.security.llmScan?.enabled).toBe(true);
+      expect(first.security.llmScan?.suspiciousScore).toBe(5);
+      expect(second.security.llmScan?.enabled).toBe(true);
+      expect(llmCalls).toBe(1);
     });
 
     it("returns cached result on second call for same package", async () => {
@@ -112,15 +111,15 @@ describe("NpmSafeEngine", () => {
       const r1 = await engine.checkPackage("safe-lib");
       const r2 = await engine.checkPackage("safe-lib");
 
-      assert.strictEqual(r1.packageName, "safe-lib");
-      assert.strictEqual(r1.exists, true);
-      assert.strictEqual(r1.latestVersion, "3.0.0");
-      assert.strictEqual(r1.security.overallLevel, SecurityLevel.Safe);
-      assert.strictEqual(r1.security.overallScore, 100);
+      expect(r1.packageName).toBe("safe-lib");
+      expect(r1.exists).toBe(true);
+      expect(r1.latestVersion).toBe("3.0.0");
+      expect(r1.security.overallLevel).toBe(SecurityLevel.Safe);
+      expect(r1.security.overallScore).toBe(100);
 
       // Second call should be from cache.
-      assert.ok(r2.exists);
-      assert.strictEqual(fetchCount, 1);
+      expect(r2.exists).toBeTruthy();
+      expect(fetchCount).toBe(1);
     });
 
     it("detects malicious package as dangerous", async () => {
@@ -137,13 +136,13 @@ describe("NpmSafeEngine", () => {
 
       const result = await engine.checkPackage("react-utils");
 
-      assert.strictEqual(result.exists, true);
+      expect(result.exists).toBe(true);
       // install-script rule fires: Critical (-25), score = 75
-      assert.strictEqual(result.security.overallScore, 75);
-      assert.ok(result.security.staticScan !== null);
+      expect(result.security.overallScore).toBe(75);
+      expect(result.security.staticScan !== null).toBeTruthy();
       const findings = result.security.staticScan!.findings;
-      assert.ok(findings.length > 0);
-      assert.ok(findings.some((f) => f.ruleId === "install-script"));
+      expect(findings.length > 0).toBeTruthy();
+      expect(findings.some((f) => f.ruleId === "install-script")).toBeTruthy();
     });
 
     it("returns not-found result for 404 packages", async () => {
@@ -159,10 +158,10 @@ describe("NpmSafeEngine", () => {
       engine = new NpmSafeEngine({ dbPath: ":memory:" });
 
       const result = await engine.checkPackage("no-such-pkg");
-      assert.strictEqual(result.exists, false);
-      assert.strictEqual(result.latestVersion, "");
-      assert.strictEqual(result.registryInfo, null);
-      assert.strictEqual(result.security.overallLevel, SecurityLevel.Unknown);
+      expect(result.exists).toBe(false);
+      expect(result.latestVersion).toBe("");
+      expect(result.registryInfo).toBe(null);
+      expect(result.security.overallLevel).toBe(SecurityLevel.Unknown);
     });
 
     it("builds registryInfo from metadata", async () => {
@@ -178,9 +177,9 @@ describe("NpmSafeEngine", () => {
       engine = new NpmSafeEngine({ dbPath: ":memory:" });
 
       const result = await engine.checkPackage("safe-lib");
-      assert.ok(result.registryInfo);
-      assert.strictEqual(result.registryInfo!.description, "A safe utility library");
-      assert.strictEqual(result.registryInfo!.homepage, "https://example.com");
+      expect(result.registryInfo).toBeTruthy();
+      expect(result.registryInfo!.description).toBe("A safe utility library");
+      expect(result.registryInfo!.homepage).toBe("https://example.com");
     });
   });
 
@@ -189,7 +188,7 @@ describe("NpmSafeEngine", () => {
       engine = new NpmSafeEngine({ dbPath: ":memory:" });
 
       let list = await engine.getWatchlist();
-      assert.deepStrictEqual(list, []);
+      expect(list).toEqual([]);
 
       // Watchlist requires package to exist in cache first.
       globalThis.fetch = ((_url: unknown, _init?: unknown) => {
@@ -206,11 +205,11 @@ describe("NpmSafeEngine", () => {
 
       await engine.addToWatchlist("safe-lib");
       list = await engine.getWatchlist();
-      assert.deepStrictEqual(list, ["safe-lib"]);
+      expect(list).toEqual(["safe-lib"]);
 
       await engine.removeFromWatchlist("safe-lib");
       list = await engine.getWatchlist();
-      assert.deepStrictEqual(list, []);
+      expect(list).toEqual([]);
     });
   });
 
@@ -219,11 +218,11 @@ describe("NpmSafeEngine", () => {
       engine = new NpmSafeEngine({ dbPath: ":memory:" });
 
       let val = await engine.getSetting("language");
-      assert.strictEqual(val, null);
+      expect(val).toBe(null);
 
       await engine.setSetting("language", "zh-CN");
       val = await engine.getSetting("language");
-      assert.strictEqual(val, "zh-CN");
+      expect(val).toBe("zh-CN");
     });
   });
 

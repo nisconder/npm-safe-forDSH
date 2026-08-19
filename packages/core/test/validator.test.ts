@@ -1,5 +1,4 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, expect } from "vitest";
 import {
   validatePackageName,
   validateVersion,
@@ -14,42 +13,42 @@ import {
 describe("validatePackageName", () => {
   // --- valid unscoped names ---
   it("accepts a simple unscoped name", () => {
-    assert.deepStrictEqual(validatePackageName("lodash"), {
+    expect(validatePackageName("lodash")).toEqual({
       valid: true,
     });
   });
 
   it("accepts name with hyphens", () => {
-    assert.deepStrictEqual(validatePackageName("my-cool-package"), {
+    expect(validatePackageName("my-cool-package")).toEqual({
       valid: true,
     });
   });
 
   it("accepts name with dots and underscores", () => {
-    assert.deepStrictEqual(validatePackageName("dot.env_file"), {
+    expect(validatePackageName("dot.env_file")).toEqual({
       valid: true,
     });
   });
 
   it("accepts name starting and ending with digit", () => {
-    assert.deepStrictEqual(validatePackageName("7zip"), { valid: true });
+    expect(validatePackageName("7zip")).toEqual({ valid: true });
   });
 
   // --- valid scoped names ---
   it("accepts a scoped package name", () => {
-    assert.deepStrictEqual(validatePackageName("@babel/core"), {
+    expect(validatePackageName("@babel/core")).toEqual({
       valid: true,
     });
   });
 
   it("accepts scoped name with hyphens in scope", () => {
-    assert.deepStrictEqual(validatePackageName("@my-scope/pkg"), {
+    expect(validatePackageName("@my-scope/pkg")).toEqual({
       valid: true,
     });
   });
 
   it("accepts scoped name with dots in name", () => {
-    assert.deepStrictEqual(validatePackageName("@types/node.fs"), {
+    expect(validatePackageName("@types/node.fs")).toEqual({
       valid: true,
     });
   });
@@ -57,12 +56,12 @@ describe("validatePackageName", () => {
   // --- edge cases: length ---
   it("accepts name at max length (214 chars)", () => {
     const name = "a".repeat(214);
-    assert.deepStrictEqual(validatePackageName(name), { valid: true });
+    expect(validatePackageName(name)).toEqual({ valid: true });
   });
 
   it("rejects name exceeding max length (215 chars)", () => {
     const name = "a".repeat(215);
-    assert.deepStrictEqual(validatePackageName(name), {
+    expect(validatePackageName(name)).toEqual({
       valid: false,
       reason: "Package name must not exceed 214 characters.",
     });
@@ -70,7 +69,7 @@ describe("validatePackageName", () => {
 
   // --- invalid: empty / non-string ---
   it("rejects empty string", () => {
-    assert.deepStrictEqual(validatePackageName(""), {
+    expect(validatePackageName("")).toEqual({
       valid: false,
       reason: "Package name must be a non-empty string.",
     });
@@ -78,87 +77,87 @@ describe("validatePackageName", () => {
 
   it("rejects whitespace-only", () => {
     const result = validatePackageName(" ");
-    assert.strictEqual(result.valid, false);
+    expect(result.valid).toBe(false);
   });
 
   // --- invalid: case ---
   it("rejects uppercase characters", () => {
     const result = validatePackageName("Lodash");
-    assert.strictEqual(result.valid, false);
-    assert.ok(result.reason?.includes("lowercase"));
+    expect(result.valid).toBe(false);
+    expect(result.reason?.includes("lowercase")).toBeTruthy();
   });
 
   it("rejects mixed-case scoped name", () => {
     const result = validatePackageName("@Babel/Core");
-    assert.strictEqual(result.valid, false);
+    expect(result.valid).toBe(false);
   });
 
   // --- invalid: spaces ---
   it("rejects name containing spaces", () => {
     const result = validatePackageName("my package");
-    assert.strictEqual(result.valid, false);
-    assert.ok(result.reason?.includes("spaces"));
+    expect(result.valid).toBe(false);
+    expect(result.reason?.includes("spaces")).toBeTruthy();
   });
 
   // --- invalid: leading dot / underscore ---
   it("rejects name starting with dot", () => {
     const result = validatePackageName(".hidden-pkg");
-    assert.strictEqual(result.valid, false);
-    assert.ok(
+    expect(result.valid).toBe(false);
+    expect(
       result.reason?.includes("begin with a dot"),
-    );
+    ).toBeTruthy();
   });
 
   it("rejects name starting with underscore", () => {
     const result = validatePackageName("_private");
-    assert.strictEqual(result.valid, false);
-    assert.ok(
+    expect(result.valid).toBe(false);
+    expect(
       result.reason?.includes("begin with a dot"),
-    );
+    ).toBeTruthy();
   });
 
   // --- invalid: scoped names ---
   it("rejects scoped name without '/' separator", () => {
     const result = validatePackageName("@noscope");
-    assert.strictEqual(result.valid, false);
-    assert.ok(result.reason?.includes('"/" separator'));
+    expect(result.valid).toBe(false);
+    expect(result.reason?.includes('"/" separator')).toBeTruthy();
   });
 
   it("rejects scoped name with empty scope", () => {
     const result = validatePackageName("@/pkg");
-    assert.strictEqual(result.valid, false);
-    assert.ok(result.reason?.includes("scope must not be empty"));
+    expect(result.valid).toBe(false);
+    expect(result.reason?.includes("scope must not be empty")).toBeTruthy();
   });
 
   it("rejects scoped name with empty name segment", () => {
     const result = validatePackageName("@scope/");
-    assert.strictEqual(result.valid, false);
-    assert.ok(
+    expect(result.valid).toBe(false);
+    expect(
       result.reason?.includes("name segment must not be empty"),
-    );
+    ).toBeTruthy();
   });
 
   it("rejects name segment starting with @", () => {
     const result = validatePackageName("@outer/@inner");
-    assert.strictEqual(result.valid, false);
-    assert.ok(result.reason?.includes("invalid characters"));
+    expect(result.valid).toBe(false);
+    expect(result.reason?.includes("invalid characters")).toBeTruthy();
   });
 
   // --- invalid: special characters ---
   it("rejects name with special chars like !", () => {
     const result = validatePackageName("bad!");
-    assert.strictEqual(result.valid, false);
-    assert.ok(result.reason?.includes("invalid characters"));
+    expect(result.valid).toBe(false);
+    expect(result.reason?.includes("invalid characters")).toBeTruthy();
   });
 
   it("rejects Unicode homograph characters (Cyrillic)", () => {
     const result = validatePackageName("evo"); // using ASCII for demonstration
-    assert.strictEqual(result.valid, true);
+    expect(result.valid).toBe(true);
     // Real homograph test: Cyrillic 'а' (U+0430) in "lodash"
     const homograph = "lod\u0430sh"; // lodаsh with Cyrillic a
     const r = validatePackageName(homograph);
-    assert.strictEqual(r.valid, false);
-    assert.ok(r.reason?.includes("invalid characters"));
+    expect(r.valid).toBe(false);
+    expect(r.reason?.includes("invalid characters")).toBeTruthy();
   });
 });
 
@@ -168,71 +167,70 @@ describe("validatePackageName", () => {
 
 describe("validateVersion", () => {
   it("accepts a simple semver (1.2.3)", () => {
-    assert.strictEqual(validateVersion("1.2.3"), true);
+    expect(validateVersion("1.2.3")).toBe(true);
   });
 
   it("accepts a leading-zero-free version (0.0.1)", () => {
-    assert.strictEqual(validateVersion("0.0.1"), true);
+    expect(validateVersion("0.0.1")).toBe(true);
   });
 
   it("accepts a large version number", () => {
-    assert.strictEqual(validateVersion("999999.999999.999999"), true);
+    expect(validateVersion("999999.999999.999999")).toBe(true);
   });
 
   it("accepts pre-release identifiers", () => {
-    assert.strictEqual(validateVersion("1.0.0-alpha.1"), true);
+    expect(validateVersion("1.0.0-alpha.1")).toBe(true);
   });
 
   it("accepts build metadata", () => {
-    assert.strictEqual(validateVersion("1.0.0+build.2024"), true);
+    expect(validateVersion("1.0.0+build.2024")).toBe(true);
   });
 
   it("accepts pre-release with build metadata", () => {
-    assert.strictEqual(
+    expect(
       validateVersion("1.0.0-beta.1+build.42"),
-      true,
-    );
+    ).toBe(true);
   });
 
   // --- invalid ---
   it("rejects empty string", () => {
-    assert.strictEqual(validateVersion(""), false);
+    expect(validateVersion("")).toBe(false);
   });
 
   it("rejects partial semver (1.2)", () => {
-    assert.strictEqual(validateVersion("1.2"), false);
+    expect(validateVersion("1.2")).toBe(false);
   });
 
   it("rejects non-numeric version (a.b.c)", () => {
-    assert.strictEqual(validateVersion("a.b.c"), false);
+    expect(validateVersion("a.b.c")).toBe(false);
   });
 
   it("rejects leading zero in major (01.2.3)", () => {
-    assert.strictEqual(validateVersion("01.2.3"), false);
+    expect(validateVersion("01.2.3")).toBe(false);
   });
 
   it("rejects leading zero in minor (1.02.3)", () => {
-    assert.strictEqual(validateVersion("1.02.3"), false);
+    expect(validateVersion("1.02.3")).toBe(false);
   });
 
   it("rejects leading zero in patch (1.2.03)", () => {
-    assert.strictEqual(validateVersion("1.2.03"), false);
+    expect(validateVersion("1.2.03")).toBe(false);
   });
 
   it("rejects v-prefixed version (v1.2.3)", () => {
-    assert.strictEqual(validateVersion("v1.2.3"), false);
+    expect(validateVersion("v1.2.3")).toBe(false);
   });
 
   it("rejects version with trailing characters", () => {
-    assert.strictEqual(validateVersion("1.2.3 "), false);
+    expect(validateVersion("1.2.3 ")).toBe(false);
   });
 
   it("rejects single number (1)", () => {
-    assert.strictEqual(validateVersion("1"), false);
+    expect(validateVersion("1")).toBe(false);
   });
 
   it("rejects negative numbers", () => {
-    assert.strictEqual(validateVersion("-1.2.3"), false);
+    expect(validateVersion("-1.2.3")).toBe(false);
   });
 });
 
@@ -243,7 +241,7 @@ describe("validateVersion", () => {
 describe("validateDomain", () => {
   it("extracts domain from a full URL", () => {
     const result = validateDomain("https://registry.npmjs.org/package");
-    assert.deepStrictEqual(result, {
+    expect(result).toEqual({
       valid: true,
       domain: "registry.npmjs.org",
     });
@@ -251,31 +249,31 @@ describe("validateDomain", () => {
 
   it("prepends https:// for bare domain", () => {
     const result = validateDomain("github.com/user/repo");
-    assert.strictEqual(result.valid, true);
-    assert.strictEqual(result.domain, "github.com");
+    expect(result.valid).toBe(true);
+    expect(result.domain).toBe("github.com");
   });
 
   it("lowercases the domain", () => {
     const result = validateDomain("HTTPS://GitHub.com");
-    assert.strictEqual(result.domain, "github.com");
+    expect(result.domain).toBe("github.com");
   });
 
   it("returns invalid for empty string", () => {
     const result = validateDomain("");
-    assert.strictEqual(result.valid, false);
-    assert.strictEqual(result.domain, "");
+    expect(result.valid).toBe(false);
+    expect(result.domain).toBe("");
   });
 
   it("returns valid for relative paths (treated as hostname)", () => {
     const result = validateDomain("/relative/path");
-    assert.strictEqual(result.valid, true);
-    assert.strictEqual(result.domain, "relative");
+    expect(result.valid).toBe(true);
+    expect(result.domain).toBe("relative");
   });
 
   it("returns invalid for invalid URL syntax", () => {
     const result = validateDomain("not a url at all !!!");
-    assert.strictEqual(result.valid, false);
-    assert.strictEqual(result.domain, "");
+    expect(result.valid).toBe(false);
+    expect(result.domain).toBe("");
   });
 });
 
@@ -285,50 +283,46 @@ describe("validateDomain", () => {
 
 describe("isKnownRegistryDomain", () => {
   it("recognizes registry.npmjs.org", () => {
-    assert.strictEqual(
+    expect(
       isKnownRegistryDomain("registry.npmjs.org"),
-      true,
-    );
+    ).toBe(true);
   });
 
   it("recognizes npmjs.com", () => {
-    assert.strictEqual(isKnownRegistryDomain("npmjs.com"), true);
+    expect(isKnownRegistryDomain("npmjs.com")).toBe(true);
   });
 
   it("recognizes github.com", () => {
-    assert.strictEqual(isKnownRegistryDomain("github.com"), true);
+    expect(isKnownRegistryDomain("github.com")).toBe(true);
   });
 
   it("recognizes gitlab.com", () => {
-    assert.strictEqual(isKnownRegistryDomain("gitlab.com"), true);
+    expect(isKnownRegistryDomain("gitlab.com")).toBe(true);
   });
 
   it("recognizes bitbucket.org", () => {
-    assert.strictEqual(isKnownRegistryDomain("bitbucket.org"), true);
+    expect(isKnownRegistryDomain("bitbucket.org")).toBe(true);
   });
 
   it("recognizes domain case-insensitively", () => {
-    assert.strictEqual(
+    expect(
       isKnownRegistryDomain("REGISTRY.NPMJS.ORG"),
-      true,
-    );
+    ).toBe(true);
   });
 
   it("rejects unknown domain", () => {
-    assert.strictEqual(
+    expect(
       isKnownRegistryDomain("evil-registry.io"),
-      false,
-    );
+    ).toBe(false);
   });
 
   it("rejects empty string", () => {
-    assert.strictEqual(isKnownRegistryDomain(""), false);
+    expect(isKnownRegistryDomain("")).toBe(false);
   });
 
   it("rejects subdomains of known hosts", () => {
-    assert.strictEqual(
+    expect(
       isKnownRegistryDomain("evil.github.com"),
-      false,
-    );
+    ).toBe(false);
   });
 });

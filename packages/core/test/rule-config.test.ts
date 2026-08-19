@@ -1,5 +1,4 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, expect } from "vitest";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -15,9 +14,9 @@ function tmpConfigPath(): string {
 describe("RuleConfigManager", () => {
   it("starts with an empty config when no file exists", () => {
     const mgr = new RuleConfigManager(tmpConfigPath());
-    assert.deepStrictEqual(mgr.getConfiguredRuleIds(), []);
-    assert.strictEqual(mgr.isEnabled("x", true), true);
-    assert.strictEqual(mgr.getSeverityOverride("x"), undefined);
+    expect(mgr.getConfiguredRuleIds()).toEqual([]);
+    expect(mgr.isEnabled("x", true)).toBe(true);
+    expect(mgr.getSeverityOverride("x")).toBe(undefined);
   });
 
   it("treats a corrupt config file as empty", () => {
@@ -25,44 +24,43 @@ describe("RuleConfigManager", () => {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, "not json");
     const mgr = new RuleConfigManager(file);
-    assert.deepStrictEqual(mgr.getConfiguredRuleIds(), []);
+    expect(mgr.getConfiguredRuleIds()).toEqual([]);
   });
 
   it("persists enable/disable overrides", () => {
     const file = tmpConfigPath();
     const mgr = new RuleConfigManager(file);
     mgr.setEnabled("install-script", false);
-    assert.strictEqual(mgr.isEnabled("install-script", true), false);
+    expect(mgr.isEnabled("install-script", true)).toBe(false);
 
     const reloaded = new RuleConfigManager(file);
-    assert.strictEqual(reloaded.isEnabled("install-script", true), false);
+    expect(reloaded.isEnabled("install-script", true)).toBe(false);
   });
 
   it("persists severity overrides and can clear them", () => {
     const file = tmpConfigPath();
     const mgr = new RuleConfigManager(file);
     mgr.setSeverity("typosquatting", Severity.Critical);
-    assert.strictEqual(
+    expect(
       mgr.getSeverityOverride("typosquatting"),
-      Severity.Critical,
-    );
+    ).toBe(Severity.Critical);
 
     mgr.setSeverity("typosquatting", undefined);
-    assert.strictEqual(mgr.getSeverityOverride("typosquatting"), undefined);
+    expect(mgr.getSeverityOverride("typosquatting")).toBe(undefined);
   });
 
   it("persists free-form options", () => {
     const file = tmpConfigPath();
     const mgr = new RuleConfigManager(file);
     mgr.setOptions("my-rule", { threshold: 3 });
-    assert.deepStrictEqual(mgr.getOptions("my-rule"), { threshold: 3 });
+    expect(mgr.getOptions("my-rule")).toEqual({ threshold: 3 });
 
     const reloaded = new RuleConfigManager(file);
-    assert.deepStrictEqual(reloaded.getOptions("my-rule"), { threshold: 3 });
+    expect(reloaded.getOptions("my-rule")).toEqual({ threshold: 3 });
   });
 
   it("returns {} for options of an unconfigured rule", () => {
     const mgr = new RuleConfigManager(tmpConfigPath());
-    assert.deepStrictEqual(mgr.getOptions("nope"), {});
+    expect(mgr.getOptions("nope")).toEqual({});
   });
 });

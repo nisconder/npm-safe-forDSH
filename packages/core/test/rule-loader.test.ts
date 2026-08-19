@@ -1,5 +1,4 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, expect } from "vitest";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -18,7 +17,7 @@ function writeRuleFile(dir: string, name: string, body: string): void {
 describe("loadRulesFromDirectory", () => {
   it("returns [] when the directory does not exist", async () => {
     const results = await loadRulesFromDirectory(path.join(os.tmpdir(), "no-such-dir"));
-    assert.deepStrictEqual(results, []);
+    expect(results).toEqual([]);
   });
 
   it("loads a single rule exported as `rule`", async () => {
@@ -37,9 +36,9 @@ describe("loadRulesFromDirectory", () => {
       };`,
     );
     const results = await loadRulesFromDirectory(dir);
-    assert.strictEqual(results.length, 1);
-    assert.strictEqual(results[0].rules.length, 1);
-    assert.strictEqual(results[0].rules[0].id, "test-one");
+    expect(results.length).toBe(1);
+    expect(results[0].rules.length).toBe(1);
+    expect(results[0].rules[0].id).toBe("test-one");
   });
 
   it("loads multiple rules exported as `rules`", async () => {
@@ -53,8 +52,8 @@ describe("loadRulesFromDirectory", () => {
       ];`,
     );
     const results = await loadRulesFromDirectory(dir);
-    assert.strictEqual(results.length, 1);
-    assert.strictEqual(results[0].rules.length, 2);
+    expect(results.length).toBe(1);
+    expect(results[0].rules.length).toBe(2);
   });
 
   it("loads rules from a `default` export", async () => {
@@ -73,8 +72,8 @@ describe("loadRulesFromDirectory", () => {
       };`,
     );
     const results = await loadRulesFromDirectory(dir);
-    assert.strictEqual(results.length, 1);
-    assert.strictEqual(results[0].rules[0].id, "dflt");
+    expect(results.length).toBe(1);
+    expect(results[0].rules[0].id).toBe("dflt");
   });
 
   it("loads rules from a factory function", async () => {
@@ -93,8 +92,8 @@ describe("loadRulesFromDirectory", () => {
       });`,
     );
     const results = await loadRulesFromDirectory(dir);
-    assert.strictEqual(results.length, 1);
-    assert.strictEqual(results[0].rules[0].id, "fact");
+    expect(results.length).toBe(1);
+    expect(results[0].rules[0].id).toBe("fact");
   });
 
   it("skips files that do not export rules", async () => {
@@ -102,7 +101,7 @@ describe("loadRulesFromDirectory", () => {
     writeRuleFile(dir, "empty.mjs", `export const nothing = 42;`);
     writeRuleFile(dir, "broken.mjs", `export const rule = { nope: true };`);
     const results = await loadRulesFromDirectory(dir);
-    assert.deepStrictEqual(results, []);
+    expect(results).toEqual([]);
   });
 
   it("loads files in lexical order", async () => {
@@ -110,9 +109,8 @@ describe("loadRulesFromDirectory", () => {
     writeRuleFile(dir, "10-late.mjs", `export const rule = { id: "late", name: "L", description: "d", severity: "low", category: "informational", enabled: true, match: () => [] };`);
     writeRuleFile(dir, "01-early.mjs", `export const rule = { id: "early", name: "E", description: "d", severity: "low", category: "informational", enabled: true, match: () => [] };`);
     const results = await loadRulesFromDirectory(dir);
-    assert.deepStrictEqual(
+    expect(
       results.map((r) => r.rules[0].id),
-      ["early", "late"],
-    );
+    ).toEqual(["early", "late"]);
   });
 });

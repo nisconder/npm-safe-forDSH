@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -73,18 +72,17 @@ describe("NpmSafeEngine.checkPackages", () => {
       concurrency: 3,
     });
 
-    assert.strictEqual(results.length, 3);
-    assert.deepStrictEqual(
+    expect(results.length).toBe(3);
+    expect(
       results.map((r) => r.name),
-      ["safe-lib", "other-lib", "missing-pkg"],
-    );
-    assert.strictEqual(results[0].ok, true);
-    assert.strictEqual(results[0].result?.latestVersion, "1.0.0");
-    assert.strictEqual(results[1].ok, true);
-    assert.strictEqual(results[1].result?.latestVersion, "2.0.0");
+    ).toEqual(["safe-lib", "other-lib", "missing-pkg"]);
+    expect(results[0].ok).toBe(true);
+    expect(results[0].result?.latestVersion).toBe("1.0.0");
+    expect(results[1].ok).toBe(true);
+    expect(results[1].result?.latestVersion).toBe("2.0.0");
     // A 404 yields exists: false rather than an error.
-    assert.strictEqual(results[2].ok, true);
-    assert.strictEqual(results[2].result?.exists, false);
+    expect(results[2].ok).toBe(true);
+    expect(results[2].result?.exists).toBe(false);
   });
 
   it("isolates network failures and reports them per package", async () => {
@@ -103,9 +101,9 @@ describe("NpmSafeEngine.checkPackages", () => {
     }) as typeof fetch;
 
     const results = await engine.checkPackages(["good-lib", "broken"], { concurrency: 2 });
-    assert.strictEqual(results[0].ok, true);
-    assert.strictEqual(results[1].ok, false);
-    assert.ok(results[1].error?.includes("ECONNREFUSED"));
+    expect(results[0].ok).toBe(true);
+    expect(results[1].ok).toBe(false);
+    expect(results[1].error?.includes("ECONNREFUSED")).toBeTruthy();
   });
 
   it("invokes the progress callback for every completed package", async () => {
@@ -127,8 +125,8 @@ describe("NpmSafeEngine.checkPackages", () => {
       onProgress: (done, total) => calls.push([done, total]),
     });
 
-    assert.strictEqual(calls.length, 4);
-    assert.deepStrictEqual(calls[3], [4, 4]);
+    expect(calls.length).toBe(4);
+    expect(calls[3]).toEqual([4, 4]);
   });
 
   it("uses cached results for packages checked before", async () => {
@@ -148,8 +146,8 @@ describe("NpmSafeEngine.checkPackages", () => {
     await engine.checkPackages(["cached-lib"], { concurrency: 1 });
     const before = fetches;
     const second = await engine.checkPackages(["cached-lib", "cached-lib"], { concurrency: 2 });
-    assert.strictEqual(fetches, before, "second batch should hit the cache");
-    assert.strictEqual(second.length, 2);
-    assert.ok(second.every((r) => r.ok));
+    expect(fetches).toBe(before);
+    expect(second.length).toBe(2);
+    expect(second.every((r) => r.ok)).toBeTruthy();
   });
 });

