@@ -1,2 +1,5 @@
 packages:
   - packages/*
+pnpm:
+  onlyBuiltDependencies:
+    - better-sqlite3
