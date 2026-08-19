@@ -233,6 +233,7 @@ recordCheckHistory(result: CheckResult): Promise<void>
 Append a successful check to the persistent history table
 (`check_history`, newest-first, capped at 1000). No-op when `result.exists`
 is `false`. Both the CLI and the desktop extension use this, so history is
+> CLI removed in dsh migration — engine API below
 shared across frontends.
 
 #### recordHistoryEntry
@@ -820,7 +821,8 @@ class LlmProviderError extends Error {
 
 ### Environment Variables
 
-The engine and CLI resolve LLM configuration from `~/.npm-safe/llm.json`
+The engine resolves LLM configuration from `~/.npm-safe/llm.json`
+> CLI removed in dsh migration — engine API below
 first, then fall back to provider-specific environment variables. If neither a
 persisted key nor an environment variable is present, LLM scanning is
 silently disabled and static scanning continues normally.
@@ -1332,7 +1334,7 @@ interface RefreshErrorPayload {
 
 **Source:** `src/telemetry/telemetry.ts`
 
-Opt-in, local-only usage telemetry used by the CLI. Disabled by default;
+Opt-in, local-only usage telemetry used by the CLI (removed in dsh migration). Disabled by default;
 nothing is ever sent anywhere.
 
 ```ts

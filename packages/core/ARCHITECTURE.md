@@ -420,6 +420,7 @@ The migration runner is implemented in `DatabaseManager` (`src/store/database.ts
   runner can record it under the `001_initial.sql` name.
 - `getCheckHistoryMigration()` (migration `002`) creates the `check_history`
   table (and its timestamp index) for the shared CLI/GUI check history.
+> CLI removed in dsh migration — engine API below
 
 ### 6.2. Runner Algorithm (`DatabaseManager.runMigrations()`)
 
