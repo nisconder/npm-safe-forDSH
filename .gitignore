@@ -1,0 +1,10 @@
+node_modules/
+dist/
+lib/
+coverage/
+*.db
+.env
+.omo/
+.codegraph/
+.DS_Store
+.smoke-project/
