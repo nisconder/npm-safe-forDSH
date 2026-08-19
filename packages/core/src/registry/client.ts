@@ -224,12 +224,24 @@ export class NpmRegistryClient {
    * dist-tags, and the readme.
    *
    * @param name - Package name (scoped names include the leading `@`).
+   * @param options - Optional request options. `options.signal` is forwarded
+   *   to the underlying fetch as part of a combined abort signal; an external
+   *   abort settles the promise promptly with an `AbortError` `DOMException`
+   *   (no retry).
    * @returns The full package metadata document.
    * @throws {NpmRegistryError} When the request fails after all retries or
    *   the registry returns a non-2xx status.
+   * @throws {DOMException} With name `AbortError` when `options.signal` is
+   *   aborted.
    */
-  async getPackageMetadata(name: string): Promise<PackageMetadata> {
-    return this.request<PackageMetadata>(`${this.baseUrl}/${encodeName(name)}`);
+  async getPackageMetadata(
+    name: string,
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<PackageMetadata> {
+    return this.request<PackageMetadata>(
+      `${this.baseUrl}/${encodeName(name)}`,
+      options,
+    );
   }
 
   /**
@@ -261,19 +273,24 @@ export class NpmRegistryClient {
    * number of results (the registry imposes its own upper bound).
    *
    * @param query - Free-text search query.
-   * @param size - Maximum number of results to return. Defaults to 20.
+   * @param options - Optional search options. `options.size` caps the number
+   *   of results (defaults to 20); `options.signal` is forwarded to the
+   *   underlying fetch as part of a combined abort signal.
    * @returns An array of search-result hits, ordered by relevance.
    * @throws {NpmRegistryError} When the request fails after all retries or
    *   the registry returns a non-2xx status.
+   * @throws {DOMException} With name `AbortError` when `options.signal` is
+   *   aborted.
    */
   async searchPackages(
     query: string,
-    size: number = 20,
+    options?: { readonly size?: number; readonly signal?: AbortSignal },
   ): Promise<SearchResult[]> {
+    const size = options?.size ?? 20;
     const url = `${this.baseUrl}/-/v1/search?text=${encodeURIComponent(
       query,
     )}&size=${encodeURIComponent(String(size))}`;
-    const body = await this.request<SearchResponse>(url);
+    const body = await this.request<SearchResponse>(url, options);
     // Normalise the raw response into the public SearchResult shape. The
     // registry omits `searchScore` on some responses, so default to the
     // final score when absent.
@@ -290,22 +307,45 @@ export class NpmRegistryClient {
    * The request is retried up to {@link MAX_ATTEMPTS} times with exponential
    * backoff (1s, 2s, 4s). A retry is attempted when:
    *
-   * - The fetch rejects (network error, DNS failure, abort due to timeout).
+   * - The fetch rejects (network error, DNS failure, abort due to the owned
+   *   timeout controller).
    * - The response status is not in the 2xx range.
    *
    * On the final attempt the underlying error (or a new
    * {@link NpmRegistryError} for non-2xx responses) is rethrown.
    *
+   * **Cooperative cancellation**: when `options.signal` is supplied it is
+   * combined with the per-request timeout controller via `AbortSignal.any`.
+   * An external abort (`options.signal` aborted) breaks the retry loop
+   * immediately and rethrows `DOMException('The operation was aborted.',
+   * 'AbortError')` with NO retry — the abort is never swallowed as a
+   * retryable timeout. Only the owned timeout controller keeps the existing
+   * wrap-as-`NpmRegistryError` + retry behaviour.
+   *
    * @typeParam T - Expected shape of the parsed JSON response.
    * @param url - Fully-qualified URL to fetch.
+   * @param options - Optional request options. `options.signal` is an
+   *   external abort signal forwarded by callers.
    * @returns The parsed JSON response body typed as `T`.
    * @throws {NpmRegistryError} When all attempts are exhausted or the
    *   registry returns a non-2xx status on the final attempt.
+   * @throws {DOMException} With name `AbortError` when `options.signal` is
+   *   aborted.
    */
-  private async request<T>(url: string): Promise<T> {
+  private async request<T>(
+    url: string,
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<T> {
     let lastError: unknown = null;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      // An already-aborted external signal short-circuits before any
+      // backoff sleep or fetch attempt: the abort must settle promptly
+      // with AbortError and must NOT be retried.
+      if (options?.signal?.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
+
       // Back off before every retry (skip on the first attempt).
       if (attempt > 1) {
         await sleep(RETRY_BACKOFF_MS[attempt - 2]!);
@@ -319,6 +359,12 @@ export class NpmRegistryClient {
 
       try {
         const dispatcher = this.getDispatcher(url);
+        // Combine the owned timeout controller with the external abort
+        // signal so either one aborts the fetch. When no external signal
+        // is supplied the owned controller is used directly.
+        const combinedSignal = options?.signal
+          ? AbortSignal.any([controller.signal, options.signal])
+          : controller.signal;
         const init: RequestInit = {
           method: 'GET',
           headers: {
@@ -326,7 +372,7 @@ export class NpmRegistryClient {
             'Accept-Encoding': 'gzip, deflate',
             'User-Agent': this.userAgent,
           },
-          signal: controller.signal,
+          signal: combinedSignal,
         };
         if (dispatcher) {
           // undici's fetch accepts a `dispatcher` option to route the request
@@ -351,8 +397,18 @@ export class NpmRegistryClient {
 
         return (await response.json()) as T;
       } catch (error) {
-        // An abort triggered by our own timeout is surfaced as an
-        // NpmRegistryError so callers see a consistent error type.
+        // An abort triggered by the EXTERNAL signal must break the retry
+        // loop and propagate as AbortError — it is never a retryable
+        // timeout. This is the cooperative-cancellation contract.
+        if (options?.signal?.aborted) {
+          throw new DOMException(
+            'The operation was aborted.',
+            'AbortError',
+          );
+        }
+        // An abort triggered by our OWN timeout controller is surfaced as
+        // an NpmRegistryError so callers see a consistent error type, and
+        // remains retryable.
         if (error instanceof Error && error.name === 'AbortError') {
           lastError = new NpmRegistryError(
             `Registry request to ${url} timed out after ${REQUEST_TIMEOUT_MS}ms.`,

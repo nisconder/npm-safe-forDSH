@@ -140,6 +140,33 @@ export interface CheckResult {
 }
 
 /**
+ * Options accepted by {@link NpmSafeEngine.checkPackage}.
+ */
+export interface CheckPackageOptions {
+  /**
+   * When `true`, skip the ENTIRE cache-hit fast path (including
+   * `cache.getPackage`, `cache.getSecurityReport`, and
+   * `cache.getLlmScanReport`) and always execute the cache-miss path: fetch
+   * fresh metadata from the registry, persist it, re-run the static analyzer,
+   * persist the security report, and run the LLM scan. In other words,
+   * `forceRefresh` mirrors the stale-fetch path exactly. Useful when the
+   * caller knows the cached data is stale or wants to re-validate against the
+   * live registry regardless of TTL.
+   * @default false
+   */
+  readonly forceRefresh?: boolean;
+
+  /**
+   * Optional external abort signal. When supplied, the signal is forwarded
+   * to the registry fetch (`client.getPackageMetadata`) and the LLM scan so
+   * an abort during in-flight work settles the promise promptly with
+   * `DOMException('The operation was aborted.', 'AbortError')` (cooperative
+   * cancellation).
+   */
+  readonly signal?: AbortSignal;
+}
+
+/**
  * Options accepted by {@link NpmSafeEngine.checkPackages}.
  */
 export interface BatchCheckOptions {
@@ -149,6 +176,14 @@ export interface BatchCheckOptions {
    * @default 5
    */
   readonly concurrency?: number;
+
+  /**
+   * Optional external abort signal forwarded to each worker's
+   * {@link NpmSafeEngine.checkPackage} call. The worker loop short-circuits
+   * at the top of each iteration when this signal is aborted, so a long
+   * batch settles promptly instead of continuing to iterate.
+   */
+  readonly signal?: AbortSignal;
 
   /**
    * Progress callback invoked after each package completes. `done` counts
@@ -262,41 +297,54 @@ export class NpmSafeEngine {
    * fields are empty. All other errors (network failure, timeout, …) are
    * rethrown so the caller can handle them appropriately.
    *
+   * Pass `{ forceRefresh: true }` to skip the cache-hit fast path entirely
+   * and always re-fetch from the registry. Pass `{ signal }` to make the
+   * check cooperatively cancellable — an abort settles the promise promptly
+   * with `DOMException('The operation was aborted.', 'AbortError')`.
+   *
    * @param name - Fully-qualified package name (scope included when scoped).
+   * @param options - Optional check options (forceRefresh, signal).
    * @returns A promise that resolves to the check result.
    */
-  async checkPackage(name: string): Promise<CheckResult> {
-    // 1. Try the cache first.
-    const cached = await this.cache.getPackage(name);
-    if (cached !== null) {
-      const latestVersion = cached['dist-tags'].latest;
-      const staticScan = await this.cache.getSecurityReport(
-        name,
-        latestVersion,
-      );
-      const llmScan = this.llmProvider
-        ? (await this.cache.getLlmScanReport(name, latestVersion)) ??
-          await this.scanWithLlm(cached, latestVersion)
-        : undefined;
+  async checkPackage(
+    name: string,
+    options?: CheckPackageOptions,
+  ): Promise<CheckResult> {
+    // 1. Try the cache first — unless forceRefresh bypasses it entirely.
+    if (!options?.forceRefresh) {
+      const cached = await this.cache.getPackage(name);
+      if (cached !== null) {
+        const latestVersion = cached['dist-tags'].latest;
+        const staticScan = await this.cache.getSecurityReport(
+          name,
+          latestVersion,
+        );
+        const llmScan = this.llmProvider
+          ? (await this.cache.getLlmScanReport(name, latestVersion)) ??
+            await this.scanWithLlm(cached, latestVersion, options?.signal)
+          : undefined;
 
-      return this.buildCheckResult(
-        name,
-        true,
-        latestVersion,
-        staticScan ?? null,
-        llmScan,
-        {
-          description: cached.description ?? '',
-          homepage: cached.homepage ?? '',
-          repository: repositoryToString(cached.repository),
-        },
-        null, // cachedAt unknown when serving from cache
-      );
+        return this.buildCheckResult(
+          name,
+          true,
+          latestVersion,
+          staticScan ?? null,
+          llmScan,
+          {
+            description: cached.description ?? '',
+            homepage: cached.homepage ?? '',
+            repository: repositoryToString(cached.repository),
+          },
+          null, // cachedAt unknown when serving from cache
+        );
+      }
     }
 
-    // 2. Cache miss or stale — fetch from the registry.
+    // 2. Cache miss, stale, or forceRefresh — fetch from the registry.
     try {
-      const meta = await this.client.getPackageMetadata(name);
+      const meta = await this.client.getPackageMetadata(name, {
+        signal: options?.signal,
+      });
       const latestVersion = meta['dist-tags'].latest;
 
       // Persist the fresh metadata before running analysis so the cache is
@@ -316,7 +364,7 @@ export class NpmSafeEngine {
 
       await this.cache.setSecurityReport(report);
       const llmScan = this.llmProvider
-        ? await this.scanWithLlm(meta, latestVersion)
+        ? await this.scanWithLlm(meta, latestVersion, options?.signal)
         : undefined;
 
       return this.buildCheckResult(
@@ -354,11 +402,20 @@ export class NpmSafeEngine {
    * Search the npm registry for packages matching a text query.
    *
    * @param query - Free-text search query.
-   * @param size - Maximum number of results to return. Defaults to `20`.
+   * @param options - Optional search options. `options.size` caps the number
+   *   of results (defaults to 20); `options.signal` is forwarded to the
+   *   registry client for cooperative cancellation. Search is not cached, so
+   *   there is no `forceRefresh` option here.
    * @returns An array of search-result hits, ordered by relevance.
    */
-  async searchPackages(query: string, size?: number): Promise<SearchResult[]> {
-    return this.client.searchPackages(query, size);
+  async searchPackages(
+    query: string,
+    options?: { readonly size?: number; readonly signal?: AbortSignal },
+  ): Promise<SearchResult[]> {
+    return this.client.searchPackages(query, {
+      size: options?.size,
+      signal: options?.signal,
+    });
   }
 
   /**
@@ -388,12 +445,20 @@ export class NpmSafeEngine {
 
     const worker = async (): Promise<void> => {
       for (;;) {
+        // Short-circuit at the top of each iteration so an aborted batch
+        // settles promptly instead of the worker catch swallowing the
+        // AbortError as a per-package error and continuing to iterate
+        // (cooperative cancellation).
+        if (options?.signal?.aborted) break;
+
         const index = next++;
         if (index >= names.length) return;
         const name = names[index];
         try {
           await this.limiter.consume(1);
-          const result = await this.checkPackage(name);
+          const result = await this.checkPackage(name, {
+            signal: options?.signal,
+          });
           const entry: BatchPackageResult = { name, ok: true, result };
           results[index] = entry;
           done++;
@@ -459,21 +524,36 @@ export class NpmSafeEngine {
    *
    * Per-package failures are surfaced via the scheduler's `refresh:error`
    * event and represented by a `false` result rather than thrown, so a
-   * failing package does not abort a batch.
+   * failing package does not abort a batch. An external abort
+   * (`options.signal` aborted) propagates as
+   * `DOMException('The operation was aborted.', 'AbortError')`.
    *
    * @param name - Fully-qualified package name to refresh.
+   * @param options - Optional refresh options. `options.signal` is forwarded
+   *   to the registry fetch and LLM scan.
    */
-  async refreshPackage(name: string): Promise<boolean> {
-    return this.scheduler.refreshPackage(name);
+  async refreshPackage(
+    name: string,
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<boolean> {
+    return this.scheduler.refreshPackage(name, options);
   }
 
   /**
    * Refresh every package whose cached metadata has passed its TTL.
    *
    * Packages are processed sequentially so the rate limiter is respected.
+   * When `options.signal` is supplied, the loop short-circuits at the top of
+   * each iteration on abort and rejects with
+   * `DOMException('The operation was aborted.', 'AbortError')`.
+   *
+   * @param options - Optional refresh options. `options.signal` is forwarded
+   *   to each per-package refresh.
    */
-  async refreshAll(): Promise<boolean> {
-    return this.scheduler.refreshAll();
+  async refreshAll(
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<boolean> {
+    return this.scheduler.refreshAll(options);
   }
 
   // --------------------------------------------------------------------------
@@ -780,6 +860,7 @@ export class NpmSafeEngine {
   private async scanWithLlm(
     meta: PackageMetadata,
     version: string,
+    signal?: AbortSignal,
   ): Promise<LlmScanReport> {
     if (!this.llmProvider) {
       return { enabled: false, reason: 'LLM provider is not configured.' };
@@ -792,10 +873,17 @@ export class NpmSafeEngine {
         description: meta.description ?? '',
         readme: meta.readme ?? '',
         packageJson: manifest ? { ...manifest } as Record<string, unknown> : undefined,
+        signal,
       });
       await this.cache.setLlmScanReport(meta.name, version, report);
       return report;
     } catch (error) {
+      // An external abort must propagate as AbortError so the caller
+      // settles promptly (cooperative cancellation) instead of receiving
+      // a disabled LLM report and returning normally.
+      if (signal?.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
       const report: LlmScanReport = {
         enabled: false,
         reason: error instanceof Error ? error.message : String(error),

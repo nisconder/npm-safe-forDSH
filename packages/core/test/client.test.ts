@@ -159,7 +159,7 @@ describe("NpmRegistryClient", () => {
 
       mockFetch(200, searchResponse);
       const client = new NpmRegistryClient();
-      const results = await client.searchPackages("test", 5);
+      const results = await client.searchPackages("test", { size: 5 });
 
       expect(results.length).toBe(1);
       expect(results[0].package.name).toBe("test-pkg");

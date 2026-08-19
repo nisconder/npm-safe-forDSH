@@ -66,11 +66,14 @@ export class GeminiLlmProvider implements LlmScanProvider {
       readme: input.readme.slice(0, this.maxInputChars),
       packageJson: packageJsonStr,
     });
-    const payload = await this.request({
-      contents: [{ role: "user", parts: [{ text: content }] }],
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      generationConfig: { temperature: 0, responseMimeType: "application/json" },
-    });
+    const payload = await this.request(
+      {
+        contents: [{ role: "user", parts: [{ text: content }] }],
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        generationConfig: { temperature: 0, responseMimeType: "application/json" },
+      },
+      input.signal,
+    );
     const parsed = parseJsonObject(payload);
     return buildReport(parsed, new Date().toISOString());
   }
@@ -89,16 +92,29 @@ export class GeminiLlmProvider implements LlmScanProvider {
    * error normalization.
    *
    * @param body - The JSON request body.
+   * @param signal - Optional external abort signal combined with the owned
+   *   timeout controller via `AbortSignal.any`. An external abort propagates
+   *   as `DOMException('The operation was aborted.', 'AbortError')`.
    * @returns The `candidates[0].content.parts[0].text` string from the
    *   response.
    * @throws {LlmProviderError} On network, timeout, HTTP, or shape errors.
+   * @throws {DOMException} With name `AbortError` when `signal` is aborted.
    */
-  private async request(body: Record<string, unknown>): Promise<string> {
+  private async request(
+    body: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<string> {
     if (!this.apiKey) {
       throw new LlmProviderError("LLM provider is not configured.");
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    // Combine the owned timeout controller with the external abort signal
+    // so either one aborts the fetch. When no external signal is supplied
+    // the owned controller is used directly.
+    const combinedSignal = signal
+      ? AbortSignal.any([controller.signal, signal])
+      : controller.signal;
     try {
       const url = `${this.baseUrl}/models/${encodeURIComponent(this.model)}:generateContent`;
       const response = await fetch(url, {
@@ -108,7 +124,7 @@ export class GeminiLlmProvider implements LlmScanProvider {
           "x-goog-api-key": this.apiKey,
         },
         body: JSON.stringify(body),
-        signal: controller.signal,
+        signal: combinedSignal,
       });
       if (!response.ok) {
         throw new LlmProviderError(
@@ -123,6 +139,11 @@ export class GeminiLlmProvider implements LlmScanProvider {
     } catch (error) {
       if (error instanceof LlmProviderError) throw error;
       if (error instanceof DOMException && error.name === "AbortError") {
+        // An external abort must propagate as AbortError (cooperative
+        // cancellation); the owned timeout is wrapped as LlmProviderError.
+        if (signal?.aborted) {
+          throw new DOMException("The operation was aborted.", "AbortError");
+        }
         throw new LlmProviderError("LLM request timed out.");
       }
       throw new LlmProviderError(
