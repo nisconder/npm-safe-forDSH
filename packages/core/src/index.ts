@@ -22,6 +22,8 @@ import type { StaticScanReport } from './scanner/types.js';
 import type { LlmScanReport } from './scanner/types.js';
 import { RuleConfigManager } from './scanner/rule-config.js';
 import { loadRulesFromDirectory } from './scanner/rule-loader.js';
+import { LEVEL_RANK, readDependencies, readLockfileDependencies } from './scanner/ci-scan.js';
+import type { CiReport, CiScanOptions, Dependency, PackageResult } from './scanner/ci-scan.js';
 import { createLlmProvider } from './llm/provider.js';
 import type { LlmProviderOptions, LlmScanProvider } from './llm/provider.js';
 import { LlmConfigManager } from './llm/llm-config.js';
@@ -480,6 +482,109 @@ export class NpmSafeEngine {
       Array.from({ length: concurrency }, () => worker()),
     );
     return results;
+  }
+
+  // --------------------------------------------------------------------------
+  // CI scan
+  // --------------------------------------------------------------------------
+
+  /**
+   * Scan a project's dependencies and return a CI report with a failure gate.
+   *
+   * Reads dependencies from `package.json` (or `package-lock.json` when
+   * `options.lockfile` is set), checks each one via {@link checkPackage}, and
+   * aggregates the results into a {@link CiReport}. The report's `failed` flag
+   * is `true` when any dependency reaches `options.failLevel` (inclusive) or
+   * when any check throws.
+   *
+   * This method is a pure computation — it does NOT log, format, or set process
+   * exit codes. The caller (CLI or plugin) renders the report and maps `failed`
+   * to an exit code.
+   *
+   * When `options.signal` is supplied, the loop short-circuits at the top of
+   * each iteration on abort and rejects with
+   * `DOMException('The operation was aborted.', 'AbortError')` so an aborted
+   * scan does not keep iterating deps (cooperative cancellation).
+   *
+   * @param options - Optional scan configuration. Defaults:
+   *   `dir = process.cwd()`, `failLevel = SecurityLevel.Dangerous`.
+   * @returns A {@link CiReport} describing every checked dependency.
+   */
+  async ciScan(options?: CiScanOptions): Promise<CiReport> {
+    const dir = options?.dir ?? process.cwd();
+    const failLevel = options?.failLevel ?? SecurityLevel.Dangerous;
+
+    const deps: Dependency[] = options?.lockfile
+      ? readLockfileDependencies(dir, !options?.prod)
+      : readDependencies(dir, !options?.prod);
+
+    const results: PackageResult[] = [];
+    const summary: Record<string, number> = {
+      safe: 0,
+      suspicious: 0,
+      dangerous: 0,
+      unknown: 0,
+      errors: 0,
+    };
+
+    for (const dep of deps) {
+      // Short-circuit at the top of each iteration so an aborted scan does
+      // not keep iterating deps (cooperative cancellation). The throw is
+      // BEFORE the try/catch so it propagates instead of being swallowed as
+      // a per-package error.
+      if (options?.signal?.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
+      try {
+        const result = await this.checkPackage(dep.name, {
+          signal: options?.signal,
+        });
+        const level = result.security.overallLevel;
+        results.push({
+          name: dep.name,
+          exists: result.exists,
+          version: result.latestVersion,
+          level,
+          score: result.security.overallScore,
+          findingCount: result.security.staticScan?.findings.length ?? 0,
+        });
+        summary[level] = (summary[level] ?? 0) + 1;
+        if (result.exists) {
+          await this.recordCheckHistory(result);
+        }
+      } catch (err) {
+        results.push({
+          name: dep.name,
+          exists: false,
+          version: '',
+          level: SecurityLevel.Unknown,
+          score: 0,
+          findingCount: 0,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        summary.errors++;
+      }
+    }
+
+    const failRank = LEVEL_RANK[failLevel];
+    const failed =
+      summary.errors > 0 ||
+      results.some(
+        (r) =>
+          r.exists &&
+          LEVEL_RANK[r.level] !== undefined &&
+          LEVEL_RANK[r.level] <= failRank,
+      );
+
+    return {
+      dir,
+      scannedAt: new Date().toISOString(),
+      dependencyCount: deps.length,
+      failLevel,
+      failed,
+      summary,
+      packages: results,
+    };
   }
 
   // --------------------------------------------------------------------------
@@ -946,3 +1051,6 @@ export type { RuleDescriptor } from './scanner/static-rules.js';
 export { DatabaseManager } from './store/database.js';
 export { CacheManager, DEFAULT_CACHE_TTL_MS, MAX_CHECK_HISTORY } from './store/cache-manager.js';
 export type { CacheManagerOptions } from './store/cache-manager.js';
+export { SecurityLevel, Severity } from './scanner/types.js';
+export { LEVEL_RANK, readDependencies, readLockfileDependencies } from './scanner/ci-scan.js';
+export type { CiReport, CiScanOptions, PackageResult, Dependency } from './scanner/ci-scan.js';
