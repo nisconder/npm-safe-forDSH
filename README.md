@@ -12,9 +12,9 @@
 | 里程碑 | 状态 |
 |---|---|
 | **Session 1**（2026-08-19）：Phase 0-2，T1-T8。仓库骨架、core 源码迁入、依赖精简、测试迁移到 vitest、引擎重构（forceRefresh/signal 透传、`ciScan` 移植）。共 13 个提交，HEAD `2698df3`。 | ✅ 完成（18 个测试文件 / 252 用例全绿，typecheck 通过，LSP 无错误） |
-| **Session 2**（未定）：Phase 3-5，T9-T14 + F1-F4。插件包开发（14 个工具 + 后台 `refresh_all`）、README/LICENSE/CI/冒烟脚本终验、RC 版本审计、最终验证波。 | ⏳ 延后 |
+| **Session 2**（进行中）：Phase 3-5，T9-T14 + F1-F4。插件包开发（14 个工具 + 后台 `refresh_all`）、README/LICENSE/CI/冒烟脚本终验、RC 版本审计、最终验证波。当前进度：T9 完成（插件包骨架）。 | 🔄 进行中 |
 
-当前仓库仅含 `packages/core`；插件包 `packages/tool-npm-safe` 尚未创建。
+当前仓库含 `packages/core`（完整）与 `packages/tool-npm-safe`（T9 骨架：package.json + tsconfig + 占位入口；14 个工具实现见 T10）。
 
 ## 仓库结构
 

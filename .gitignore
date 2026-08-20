@@ -8,3 +8,4 @@ coverage/
 .codegraph/
 .DS_Store
 .smoke-project/
+.npm-cache/
