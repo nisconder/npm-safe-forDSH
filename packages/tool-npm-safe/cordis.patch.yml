@@ -1,0 +1,3 @@
+- insert:
+    - id: tool-npm-safe
+      name: '@npm-safe/dsh-tool-npm-safe'
