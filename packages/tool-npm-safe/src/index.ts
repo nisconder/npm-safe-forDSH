@@ -131,10 +131,7 @@ export function apply(ctx: Context) {
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args, exec) {
-      const results = await engine.checkPackages(args.names, {
-        concurrency: args.concurrency,
-        signal: exec.signal,
-      })
+      const results = await engine.checkPackages(args.names, { concurrency: args.concurrency, signal: exec.signal })
       return formatBatch(results)
     },
   }))
@@ -223,11 +220,9 @@ export function apply(ctx: Context) {
     },
   }))
 
-  const ruleControl = (enabled: boolean) => defineTool({
-    name: enabled ? 'rule_enable' : 'rule_disable',
-    description: enabled
-      ? 'Enable a scan rule (persisted).'
-      : 'Disable a scan rule (persisted).',
+  ctx.tools.register(defineTool({
+    name: 'rule_enable',
+    description: 'Enable a scan rule (persisted).',
     parameters: {
       ruleId: { type: 'string', required: true, description: 'Rule identifier' },
     },
@@ -236,13 +231,26 @@ export function apply(ctx: Context) {
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args) {
-      engine.setRuleEnabled(args.ruleId, enabled)
-      return `${enabled ? 'Enabled' : 'Disabled'} rule ${args.ruleId}`
+      engine.setRuleEnabled(args.ruleId, true)
+      return `Enabled rule ${args.ruleId}`
     },
-  })
+  }))
 
-  ctx.tools.register(ruleControl(true))
-  ctx.tools.register(ruleControl(false))
+  ctx.tools.register(defineTool({
+    name: 'rule_disable',
+    description: 'Disable a scan rule (persisted).',
+    parameters: {
+      ruleId: { type: 'string', required: true, description: 'Rule identifier' },
+    },
+    output: {
+      schema: { type: 'string' },
+      render: (_args, value) => [{ type: 'text', text: value }],
+    },
+    async execute(args) {
+      engine.setRuleEnabled(args.ruleId, false)
+      return `Disabled rule ${args.ruleId}`
+    },
+  }))
 
   ctx.tools.register(defineTool({
     name: 'rule_set_severity',
@@ -307,9 +315,8 @@ export function apply(ctx: Context) {
     parameters: {
       failLevel: {
         type: 'string',
-        required: true,
         enum: ['safe', 'suspicious', 'dangerous', 'unknown'],
-        description: 'Level that fails the build',
+        description: 'Level that fails the build (defaults to dangerous)',
       },
       lockfile: { type: 'boolean', description: 'Scan every lockfile dependency' },
       prod: { type: 'boolean', description: 'Skip devDependencies' },
@@ -320,7 +327,7 @@ export function apply(ctx: Context) {
     },
     async execute(args, exec) {
       const report = await engine.ciScan({
-        failLevel: args.failLevel as SecurityLevel,
+        failLevel: (args.failLevel ?? 'dangerous') as SecurityLevel,
         lockfile: args.lockfile ?? false,
         prod: args.prod ?? false,
         signal: exec.signal,
