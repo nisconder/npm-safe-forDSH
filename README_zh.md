@@ -85,9 +85,6 @@ npm-safe-forDSH/
 ├── tsconfig.base.json           # 共享严格 TS 配置
 ├── .npmrc                       # only-built-dependencies[]=better-sqlite3
 ├── .github/workflows/ci.yml     # Node 22.19 + 24 矩阵：build → typecheck → test
-├── docs/
-│   ├── npm-safe-dsh-plugin-migration.md   # 迁移实施规范（权威）
-│   └── HANDOVER.md                        # 交接文档
 ├── scripts/
 │   ├── smoke.mjs                # checkPackage 冒烟（真实触网）
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan 冒烟
@@ -125,9 +122,9 @@ pnpm dsh --profile headless "check lodash"
 
 ## 更多文档
 
-- [HANDOVER.md](docs/HANDOVER.md) — 状态、任务进度、关键技术决策、已知注意事项
-- [npm-safe-dsh-plugin-migration.md](docs/npm-safe-dsh-plugin-migration.md) — 迁移实施规范（权威）
-- `packages/core/API.md` · `ARCHITECTURE.md` · `SCANNER_RULES.md` — 引擎参考
+- [packages/core/API.md](packages/core/API.md) — 引擎 API 参考
+- [packages/core/ARCHITECTURE.md](packages/core/ARCHITECTURE.md) — 引擎架构
+- [packages/core/SCANNER_RULES.md](packages/core/SCANNER_RULES.md) — 扫描规则参考
 
 ## 许可证
 

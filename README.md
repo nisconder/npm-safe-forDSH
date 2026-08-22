@@ -89,9 +89,6 @@ npm-safe-forDSH/
 ├── tsconfig.base.json           # Shared strict TS config
 ├── .npmrc                       # only-built-dependencies[]=better-sqlite3
 ├── .github/workflows/ci.yml     # Node 22.19 + 24 matrix: build → typecheck → test
-├── docs/
-│   ├── npm-safe-dsh-plugin-migration.md   # Migration spec (authoritative)
-│   └── HANDOVER.md                        # Handover doc
 ├── scripts/
 │   ├── smoke.mjs                # checkPackage smoke (live registry)
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan smoke
@@ -130,9 +127,9 @@ pnpm dsh --profile headless "check lodash"
 
 ## Documentation
 
-- [HANDOVER.md](docs/HANDOVER.md) — status, task progress, key decisions, known caveats
-- [npm-safe-dsh-plugin-migration.md](docs/npm-safe-dsh-plugin-migration.md) — migration spec (authoritative)
-- `packages/core/API.md` · `ARCHITECTURE.md` · `SCANNER_RULES.md` — engine reference
+- [packages/core/API.md](packages/core/API.md) — engine API reference
+- [packages/core/ARCHITECTURE.md](packages/core/ARCHITECTURE.md) — engine architecture
+- [packages/core/SCANNER_RULES.md](packages/core/SCANNER_RULES.md) — scanner rules reference
 
 ## License
 
