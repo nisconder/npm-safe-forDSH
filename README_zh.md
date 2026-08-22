@@ -3,7 +3,7 @@
 # npm-safe-forDSH
 **面向 DeepSeek Harness 的 npm 供应链安全**
 
-[![Version](https://img.shields.io/badge/version-0.1.0-2196F3)](https://github.com/nisconder/npm-safe-forDSH/releases)
+[![Version](https://img.shields.io/github/v/release/nisconder/npm-safe-forDSH)](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](./LICENSE)
 ![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
 [![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions)
@@ -60,13 +60,13 @@ node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 
 ## 安装发布包
 
-[v0.1.0 GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/tag/v0.1.0)
+[最新 GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
 提供两个 tarball，可**无需克隆 monorepo** 直接使用引擎和插件。
 
 | 资源 | 包名 | 用途 |
 |---|---|---|
-| [`npm-safe-core-1.0.5.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz) | `@npm-safe/core` | 独立安全引擎库 |
-| [`npm-safe-dsh-tool-npm-safe-0.1.0.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz) | `@npm-safe/dsh-tool-npm-safe` | dsh 工具插件（14 个工具） |
+| `npm-safe-core-*.tgz`（[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)） | `@npm-safe/core` | 独立安全引擎库 |
+| `npm-safe-dsh-tool-npm-safe-*.tgz`（[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)） | `@npm-safe/dsh-tool-npm-safe` | dsh 工具插件（14 个工具） |
 
 ### 方式 A — 在 dsh 运行时中使用插件
 
@@ -74,8 +74,10 @@ node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 # 1. 安装 dsh（需同一 RC 版本族）
 pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
 
-# 2. 下载并安装插件 tarball
-pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz
+# 2. 从最新发布页面下载 tarball
+#    (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
+#    然后安装插件：
+pnpm add ./npm-safe-dsh-tool-npm-safe-*.tgz
 
 # 3. 使用插件的 cordis patch 启动 dsh
 pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
@@ -91,7 +93,9 @@ pnpm dsh --profile headless "check lodash"
 ### 方式 B — 将引擎作为库使用
 
 ```bash
-pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz
+# 从最新发布页面下载 tarball
+# (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
+pnpm add ./npm-safe-core-*.tgz
 ```
 
 ```ts

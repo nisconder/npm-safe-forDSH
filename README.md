@@ -3,7 +3,7 @@
 # npm-safe-forDSH
 **npm Supply-Chain Security for DeepSeek Harness**
 
-[![Version](https://img.shields.io/badge/version-0.1.0-2196F3)](https://github.com/nisconder/npm-safe-forDSH/releases)
+[![Version](https://img.shields.io/github/v/release/nisconder/npm-safe-forDSH)](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](./LICENSE)
 ![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
 [![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions)
@@ -63,14 +63,14 @@ node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 
 ## Installing the Release Packages
 
-The [v0.1.0 GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/tag/v0.1.0)
+The [latest GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
 ships two tarballs that let you use the engine and plugin **without cloning the
 monorepo**.
 
 | Asset | Package | Purpose |
 |---|---|---|
-| [`npm-safe-core-1.0.5.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz) | `@npm-safe/core` | Standalone security-engine library |
-| [`npm-safe-dsh-tool-npm-safe-0.1.0.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz) | `@npm-safe/dsh-tool-npm-safe` | dsh tool plugin (14 tools) |
+| `npm-safe-core-*.tgz` ([latest release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)) | `@npm-safe/core` | Standalone security-engine library |
+| `npm-safe-dsh-tool-npm-safe-*.tgz` ([latest release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)) | `@npm-safe/dsh-tool-npm-safe` | dsh tool plugin (14 tools) |
 
 ### Option A — Use the plugin in a dsh runtime
 
@@ -78,8 +78,10 @@ monorepo**.
 # 1. Install dsh (same RC family required)
 pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
 
-# 2. Download and install the plugin tarball
-pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz
+# 2. Download the tarballs from the latest release page
+#    (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
+#    then install the plugin:
+pnpm add ./npm-safe-dsh-tool-npm-safe-*.tgz
 
 # 3. Launch dsh with the plugin's cordis patch
 pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
@@ -95,7 +97,9 @@ pnpm dsh --profile headless "check lodash"
 ### Option B — Use the engine as a library
 
 ```bash
-pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz
+# Download the tarballs from the latest release page
+# (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
+pnpm add ./npm-safe-core-*.tgz
 ```
 
 ```ts
