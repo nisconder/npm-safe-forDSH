@@ -63,8 +63,16 @@ node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 
 ## Installation
 
-These packages are **not published to the npm registry**. Build and consume
-them from source.
+Both packages are published to the npm registry:
+
+```bash
+pnpm add @npm-safe/core-dsh           # engine
+pnpm add @npm-safe/dsh-tool-npm-safe  # dsh plugin
+```
+
+> The original `@npm-safe/core` belongs to the
+> [npm-safe](https://github.com/nisconder/npm-safe) repository and is
+> untouched by this fork.
 
 - **Source & releases**: https://github.com/nisconder/npm-safe-forDSH
   ([latest release](https://github.com/nisconder/npm-safe-forDSH/releases/latest))
@@ -107,7 +115,7 @@ stay aligned across the whole repo.
 ### Using the engine as a library
 
 ```ts
-import { NpmSafeEngine } from "@npm-safe/core";
+import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
 const result = await engine.checkPackage("lodash");
@@ -147,14 +155,14 @@ npm-safe-forDSH/
 │   ├── smoke.mjs                # checkPackage smoke (live registry)
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan smoke
 └── packages/
-    ├── core/                    # @npm-safe/core engine (CLI/desktop/telemetry stripped)
+    ├── core/                    # @npm-safe/core-dsh engine (CLI/desktop/telemetry stripped)
     └── tool-npm-safe/           # @npm-safe/dsh-tool-npm-safe plugin (14 tools)
 ```
 
 ## CI
 
 `.github/workflows/ci.yml` runs on every push / PR: Node 22.19 and 24 matrix,
-Corepack enabled, `pnpm install` → `pnpm --filter @npm-safe/core run build` →
+Corepack enabled, `pnpm install` → `pnpm --filter @npm-safe/core-dsh run build` →
 `pnpm run typecheck` → `pnpm run test`.
 
 ## Manual dsh Verification

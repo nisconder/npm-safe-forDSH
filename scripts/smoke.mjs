@@ -1,4 +1,4 @@
-// 一次性冒烟脚本：用真实 npm registry 验证迁移后的 @npm-safe/core 引擎端到端可用。
+// 一次性冒烟脚本：用真实 npm registry 验证迁移后的 @npm-safe/core-dsh 引擎端到端可用。
 //
 // 用法：
 //   node scripts/smoke.mjs lodash                       # 检查一个真实包

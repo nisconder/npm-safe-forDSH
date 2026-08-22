@@ -60,10 +60,18 @@ node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 
 ## 安装
 
-这些包**未发布至 npm registry**，请从源码构建使用。
+两个包均已发布至 npm registry：
+
+```bash
+pnpm add @npm-safe/core-dsh           # 引擎
+pnpm add @npm-safe/dsh-tool-npm-safe  # dsh 插件
+```
+
+> 原始 `@npm-safe/core` 属于
+> [npm-safe](https://github.com/nisconder/npm-safe) 仓库，本 fork 未对其做任何改动。
 
 - **源码与发布**：https://github.com/nisconder/npm-safe-forDSH
- （[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)）
+  （[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)）
 - **引擎原仓库**（只读参考）：https://github.com/nisconder/npm-safe
 
 ### 从源码构建
@@ -101,7 +109,7 @@ pnpm dsh --profile headless "check lodash"
 ### 将引擎作为库使用
 
 ```ts
-import { NpmSafeEngine } from "@npm-safe/core";
+import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
 const result = await engine.checkPackage("lodash");
@@ -140,14 +148,14 @@ npm-safe-forDSH/
 │   ├── smoke.mjs                # checkPackage 冒烟（真实触网）
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan 冒烟
 └── packages/
-    ├── core/                    # @npm-safe/core 引擎（已剔除 CLI/桌面端/telemetry）
+    ├── core/                    # @npm-safe/core-dsh 引擎（已剔除 CLI/桌面端/telemetry）
     └── tool-npm-safe/           # @npm-safe/dsh-tool-npm-safe 插件（14 个工具）
 ```
 
 ## CI
 
 `.github/workflows/ci.yml` 在每次 push / PR 时运行：Node 22.19 与 24 矩阵、
-启用 Corepack、`pnpm install` → `pnpm --filter @npm-safe/core run build` →
+启用 Corepack、`pnpm install` → `pnpm --filter @npm-safe/core-dsh run build` →
 `pnpm run typecheck` → `pnpm run test`。
 
 ## 手动 dsh 验证
