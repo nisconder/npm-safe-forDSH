@@ -58,28 +58,23 @@ node scripts/smoke.mjs definitely-not-real-xyz # 不存在的包 → exists:fals
 node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 ```
 
-## 安装发布包
+## 从 npm 安装
 
-[最新 GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-提供两个 tarball，可**无需克隆 monorepo** 直接使用引擎和插件。
+两个包均已发布至 npm registry：
 
-| 资源 | 包名 | 用途 |
+| 包名 | npm 页面 | 用途 |
 |---|---|---|
-| `npm-safe-core-*.tgz`（[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)） | `@npm-safe/core` | 独立安全引擎库 |
-| `npm-safe-dsh-tool-npm-safe-*.tgz`（[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)） | `@npm-safe/dsh-tool-npm-safe` | dsh 工具插件（14 个工具） |
+| [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) | npmjs.com | 独立安全引擎库 |
+| [`@npm-safe/dsh-tool-npm-safe`](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe) | npmjs.com | dsh 工具插件（14 个工具） |
 
 ### 方式 A — 在 dsh 运行时中使用插件
 
 ```bash
-# 1. 安装 dsh（需同一 RC 版本族）
-pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
+# 1. 安装插件
+pnpm add @npm-safe/dsh-tool-npm-safe
+# 或：npm install @npm-safe/dsh-tool-npm-safe
 
-# 2. 从最新发布页面下载 tarball
-#    (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-#    然后安装插件：
-pnpm add ./npm-safe-dsh-tool-npm-safe-*.tgz
-
-# 3. 使用插件的 cordis patch 启动 dsh
+# 2. 挂载插件的 cordis patch 并启动 dsh
 pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
 # Web UI：http://127.0.0.1:3080 — 提问 "check lodash"
 
@@ -90,12 +85,15 @@ pnpm dsh --profile headless "check lodash"
 > **需要 `DEEPSEEK_API_KEY`。** 启动 dsh 前请在环境变量中导出，或将其放置于
 > 项目根目录的 `.env` 文件中。
 
+所有 dsh peer 包必须属于同一 RC 版本族（`@deepseek-ai/dsh-tools` /
+`dsh-jobs-local` 0.1.0-rc.x，`@deepseek-ai/cordis` ^4.0.1）。升级时必须
+全仓对齐。
+
 ### 方式 B — 将引擎作为库使用
 
 ```bash
-# 从最新发布页面下载 tarball
-# (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-pnpm add ./npm-safe-core-*.tgz
+pnpm add @npm-safe/core
+# 或：npm install @npm-safe/core
 ```
 
 ```ts
@@ -109,15 +107,8 @@ await engine.close();
 
 ### 依赖说明
 
-`@npm-safe/dsh-tool-npm-safe` 将 `@npm-safe/core` 声明为依赖。根据你的项目
-结构，可以选择：
-
-- **同时安装两个 tarball**（插件会解析自身携带的 `@npm-safe/core` 副本），或
-- 将它们安装到一个 **workspace** 中，利用统一提升的 `@npm-safe/core` 同时满足
-  两者。
-
-所有 peer 包必须属于同一 RC 版本族：`dsh-tools` / `dsh-jobs-local`
-**0.1.0-rc.6**，cordis **^4.0.1**。
+`@npm-safe/dsh-tool-npm-safe` 将 `@npm-safe/core` 声明为依赖，安装插件时会
+自动拉取引擎，无需单独安装两个包。
 
 ---
 ## 工具

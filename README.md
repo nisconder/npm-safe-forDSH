@@ -61,29 +61,23 @@ node scripts/smoke.mjs definitely-not-real-xyz # missing package → exists:fals
 node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 ```
 
-## Installing the Release Packages
+## Installing from npm
 
-The [latest GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-ships two tarballs that let you use the engine and plugin **without cloning the
-monorepo**.
+Both packages are published on the npm registry:
 
-| Asset | Package | Purpose |
+| Package | npm page | Purpose |
 |---|---|---|
-| `npm-safe-core-*.tgz` ([latest release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)) | `@npm-safe/core` | Standalone security-engine library |
-| `npm-safe-dsh-tool-npm-safe-*.tgz` ([latest release](https://github.com/nisconder/npm-safe-forDSH/releases/latest)) | `@npm-safe/dsh-tool-npm-safe` | dsh tool plugin (14 tools) |
+| [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) | npmjs.com | Standalone security-engine library |
+| [`@npm-safe/dsh-tool-npm-safe`](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe) | npmjs.com | dsh tool plugin (14 tools) |
 
 ### Option A — Use the plugin in a dsh runtime
 
 ```bash
-# 1. Install dsh (same RC family required)
-pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
+# 1. Install the plugin
+pnpm add @npm-safe/dsh-tool-npm-safe
+# or: npm install @npm-safe/dsh-tool-npm-safe
 
-# 2. Download the tarballs from the latest release page
-#    (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-#    then install the plugin:
-pnpm add ./npm-safe-dsh-tool-npm-safe-*.tgz
-
-# 3. Launch dsh with the plugin's cordis patch
+# 2. Mount the plugin's cordis patch and launch dsh
 pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
 # Web UI: http://127.0.0.1:3080 — ask "check lodash"
 
@@ -94,12 +88,15 @@ pnpm dsh --profile headless "check lodash"
 > **`DEEPSEEK_API_KEY` is required.** Export it in your environment or place it
 > in a `.env` file at the project root before launching dsh.
 
+All dsh peer packages must belong to the same RC family (`@deepseek-ai/dsh-tools`
+/ `dsh-jobs-local` 0.1.0-rc.x, `@deepseek-ai/cordis` ^4.0.1). Upgrades must
+stay aligned across the whole repo.
+
 ### Option B — Use the engine as a library
 
 ```bash
-# Download the tarballs from the latest release page
-# (https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-pnpm add ./npm-safe-core-*.tgz
+pnpm add @npm-safe/core
+# or: npm install @npm-safe/core
 ```
 
 ```ts
@@ -113,16 +110,9 @@ await engine.close();
 
 ### Dependency note
 
-`@npm-safe/dsh-tool-npm-safe` declares `@npm-safe/core` as a dependency.
-Depending on your setup you can either:
-
-- install **both tarballs** (the plugin resolves its own `@npm-safe/core`
-  copy), or
-- install them into a **workspace** where a single hoisted `@npm-safe/core`
-  satisfies both.
-
-All peer packages must belong to the same RC family: `dsh-tools` /
-`dsh-jobs-local` **0.1.0-rc.6**, cordis **^4.0.1**.
+`@npm-safe/dsh-tool-npm-safe` declares `@npm-safe/core` as a dependency, so
+installing the plugin pulls in the engine automatically. No need to install
+both packages separately.
 
 ---
 ## Tools
