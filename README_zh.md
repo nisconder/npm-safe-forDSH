@@ -58,43 +58,47 @@ node scripts/smoke.mjs definitely-not-real-xyz # 不存在的包 → exists:fals
 node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 ```
 
-## 从 npm 安装
+## 安装
 
-两个包均已发布至 npm registry：
+这些包**未发布至 npm registry**，请从源码构建使用。
 
-| 包名 | npm 页面 | 用途 |
-|---|---|---|
-| [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) | npmjs.com | 独立安全引擎库 |
-| [`@npm-safe/dsh-tool-npm-safe`](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe) | npmjs.com | dsh 工具插件（14 个工具） |
+- **源码与发布**：https://github.com/nisconder/npm-safe-forDSH
+ （[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)）
+- **引擎原仓库**（只读参考）：https://github.com/nisconder/npm-safe
 
-### 方式 A — 在 dsh 运行时中使用插件
+### 从源码构建
+
+按照上方[快速开始](#快速开始)步骤安装依赖并构建工作区：
 
 ```bash
-# 1. 安装插件
-pnpm add @npm-safe/dsh-tool-npm-safe
-# 或：npm install @npm-safe/dsh-tool-npm-safe
+corepack enable
+corepack prepare pnpm@11.7.0 --activate
+pnpm install
+pnpm run build
+```
 
-# 2. 挂载插件的 cordis patch 并启动 dsh
-pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
+构建完成后，引擎产物位于 `packages/core/dist`，dsh 插件产物位于
+`packages/tool-npm-safe/lib`。通过 pnpm workspace 链接引用，或直接将工具链
+指向构建产物路径。
+
+### 在 dsh 运行时中使用插件
+
+> **需要 `DEEPSEEK_API_KEY`。** 启动 dsh 前请在环境变量中导出，或将其放置于
+> 项目根目录的 `.env` 文件中。
+
+```bash
+pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
 # Web UI：http://127.0.0.1:3080 — 提问 "check lodash"
 
 # 或以 headless 模式运行：
 pnpm dsh --profile headless "check lodash"
 ```
 
-> **需要 `DEEPSEEK_API_KEY`。** 启动 dsh 前请在环境变量中导出，或将其放置于
-> 项目根目录的 `.env` 文件中。
-
 所有 dsh peer 包必须属于同一 RC 版本族（`@deepseek-ai/dsh-tools` /
 `dsh-jobs-local` 0.1.0-rc.x，`@deepseek-ai/cordis` ^4.0.1）。升级时必须
 全仓对齐。
 
-### 方式 B — 将引擎作为库使用
-
-```bash
-pnpm add @npm-safe/core
-# 或：npm install @npm-safe/core
-```
+### 将引擎作为库使用
 
 ```ts
 import { NpmSafeEngine } from "@npm-safe/core";
@@ -104,11 +108,6 @@ const result = await engine.checkPackage("lodash");
 console.log(result);
 await engine.close();
 ```
-
-### 依赖说明
-
-`@npm-safe/dsh-tool-npm-safe` 将 `@npm-safe/core` 声明为依赖，安装插件时会
-自动拉取引擎，无需单独安装两个包。
 
 ---
 ## 工具
