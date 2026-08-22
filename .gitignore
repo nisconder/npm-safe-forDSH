@@ -9,3 +9,5 @@ coverage/
 .DS_Store
 .smoke-project/
 .npm-cache/
+.dlx-store/
+.dsh-home/

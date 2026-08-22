@@ -93,24 +93,43 @@ npm-safe-dsh/
 ## CI
 
 `.github/workflows/ci.yml` 在每次 push / PR 时运行：Node 22.19 与 24 矩阵、
-启用 Corepack、`pnpm install` → `pnpm --filter @npm-safe/core run build` →
+启用 Corepack、`pnpm install` → `pnpm run build` →
 `pnpm run typecheck` → `pnpm run test`。
 
 ## 手动 dsh 验证
 
-在 dsh（Web UI / headless）中的端到端验证为手动步骤。需安装 dsh CLI 并配置 API key：
+在 dsh（Web UI / headless）中的端到端验证需要 dsh CLI 与 API key。
+**插件尚未发布到 npm**，因此 `cordis.patch.yml` 中使用的包名
+`@npm-safe/dsh-tool-npm-safe` 在发布前无法解析。本地验证需通过临时 patch
+直接挂载插件源码。
+
+在仓库根目录 `.env` 中配置 API key：
 
 ```bash
-pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
-# 在仓库根目录 .env 中配置 DEEPSEEK_API_KEY
+# DEEPSEEK_API_KEY=sk-...
 ```
 
-随后验证 `check_package` 工具：
+在仓库根创建临时本地 patch（将 `<abs>` 替换为仓库绝对路径）：
+
+```yaml
+# local.patch.yml
+- insert:
+    - id: tool-npm-safe
+      name: 'file://<abs>/packages/tool-npm-safe/src/index.ts'
+```
+
+运行 headless（已在 `0.1.0-rc.6` 验证通过）：
+
+```bash
+pnpm dlx @deepseek-ai/dsh@0.1.0-rc.6 --profile headless \
+  --patch ./local.patch.yml \
+  "Use the check_package tool to check lodash"
+```
+
+插件发布后，可直接使用 `cordis.patch.yml`：
 
 ```bash
 pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
-# Web UI：打开 http://127.0.0.1:3080，提问 "check lodash"
-
 pnpm dsh --profile headless "check lodash"
 ```
 

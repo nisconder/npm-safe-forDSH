@@ -97,25 +97,44 @@ npm-safe-dsh/
 ## CI
 
 `.github/workflows/ci.yml` runs on every push / PR: Node 22.19 and 24 matrix,
-Corepack enabled, `pnpm install` → `pnpm --filter @npm-safe/core run build` →
+Corepack enabled, `pnpm install` → `pnpm run build` →
 `pnpm run typecheck` → `pnpm run test`.
 
 ## Manual dsh Verification
 
-End-to-end verification in dsh (Web UI / headless) is a manual step. Install
-the dsh CLI and configure an API key:
+End-to-end verification in dsh (Web UI / headless) needs the dsh CLI and an API
+key. **The plugin is not published to npm yet**, so `cordis.patch.yml` — which
+names `@npm-safe/dsh-tool-npm-safe` — cannot be resolved until it is published.
+For local verification, mount the plugin source directly with a temporary patch.
+
+Configure the API key in a root `.env` file:
 
 ```bash
-pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
-# configure DEEPSEEK_API_KEY in a root .env file
+# DEEPSEEK_API_KEY=sk-...
 ```
 
-Then verify the `check_package` tool:
+Create a temporary local patch at the repo root (replace `<abs>` with the repo's
+absolute path):
+
+```yaml
+# local.patch.yml
+- insert:
+    - id: tool-npm-safe
+      name: 'file://<abs>/packages/tool-npm-safe/src/index.ts'
+```
+
+Run headless (verified working on `0.1.0-rc.6`):
+
+```bash
+pnpm dlx @deepseek-ai/dsh@0.1.0-rc.6 --profile headless \
+  --patch ./local.patch.yml \
+  "Use the check_package tool to check lodash"
+```
+
+Once the plugin is published, `cordis.patch.yml` can be used directly:
 
 ```bash
 pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
-# Web UI: open http://127.0.0.1:3080 and ask "check lodash"
-
 pnpm dsh --profile headless "check lodash"
 ```
 
