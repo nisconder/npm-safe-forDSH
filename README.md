@@ -61,6 +61,65 @@ node scripts/smoke.mjs definitely-not-real-xyz # missing package → exists:fals
 node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 ```
 
+## Installing the Release Packages
+
+The [v0.1.0 GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/tag/v0.1.0)
+ships two tarballs that let you use the engine and plugin **without cloning the
+monorepo**.
+
+| Asset | Package | Purpose |
+|---|---|---|
+| [`npm-safe-core-1.0.5.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz) | `@npm-safe/core` | Standalone security-engine library |
+| [`npm-safe-dsh-tool-npm-safe-0.1.0.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz) | `@npm-safe/dsh-tool-npm-safe` | dsh tool plugin (14 tools) |
+
+### Option A — Use the plugin in a dsh runtime
+
+```bash
+# 1. Install dsh (same RC family required)
+pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
+
+# 2. Download and install the plugin tarball
+pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz
+
+# 3. Launch dsh with the plugin's cordis patch
+pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
+# Web UI: http://127.0.0.1:3080 — ask "check lodash"
+
+# Or run headless:
+pnpm dsh --profile headless "check lodash"
+```
+
+> **`DEEPSEEK_API_KEY` is required.** Export it in your environment or place it
+> in a `.env` file at the project root before launching dsh.
+
+### Option B — Use the engine as a library
+
+```bash
+pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz
+```
+
+```ts
+import { NpmSafeEngine } from "@npm-safe/core";
+
+const engine = new NpmSafeEngine();
+const result = await engine.checkPackage("lodash");
+console.log(result);
+await engine.close();
+```
+
+### Dependency note
+
+`@npm-safe/dsh-tool-npm-safe` declares `@npm-safe/core` as a dependency.
+Depending on your setup you can either:
+
+- install **both tarballs** (the plugin resolves its own `@npm-safe/core`
+  copy), or
+- install them into a **workspace** where a single hoisted `@npm-safe/core`
+  satisfies both.
+
+All peer packages must belong to the same RC family: `dsh-tools` /
+`dsh-jobs-local` **0.1.0-rc.6**, cordis **^4.0.1**.
+
 ---
 ## Tools
 

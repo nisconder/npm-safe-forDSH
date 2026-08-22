@@ -58,6 +58,63 @@ node scripts/smoke.mjs definitely-not-real-xyz # 不存在的包 → exists:fals
 node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 ```
 
+## 安装发布包
+
+[v0.1.0 GitHub Release](https://github.com/nisconder/npm-safe-forDSH/releases/tag/v0.1.0)
+提供两个 tarball，可**无需克隆 monorepo** 直接使用引擎和插件。
+
+| 资源 | 包名 | 用途 |
+|---|---|---|
+| [`npm-safe-core-1.0.5.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz) | `@npm-safe/core` | 独立安全引擎库 |
+| [`npm-safe-dsh-tool-npm-safe-0.1.0.tgz`](https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz) | `@npm-safe/dsh-tool-npm-safe` | dsh 工具插件（14 个工具） |
+
+### 方式 A — 在 dsh 运行时中使用插件
+
+```bash
+# 1. 安装 dsh（需同一 RC 版本族）
+pnpm add -g @deepseek-ai/dsh@0.1.0-rc.6
+
+# 2. 下载并安装插件 tarball
+pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-dsh-tool-npm-safe-0.1.0.tgz
+
+# 3. 使用插件的 cordis patch 启动 dsh
+pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
+# Web UI：http://127.0.0.1:3080 — 提问 "check lodash"
+
+# 或以 headless 模式运行：
+pnpm dsh --profile headless "check lodash"
+```
+
+> **需要 `DEEPSEEK_API_KEY`。** 启动 dsh 前请在环境变量中导出，或将其放置于
+> 项目根目录的 `.env` 文件中。
+
+### 方式 B — 将引擎作为库使用
+
+```bash
+pnpm add https://github.com/nisconder/npm-safe-forDSH/releases/download/v0.1.0/npm-safe-core-1.0.5.tgz
+```
+
+```ts
+import { NpmSafeEngine } from "@npm-safe/core";
+
+const engine = new NpmSafeEngine();
+const result = await engine.checkPackage("lodash");
+console.log(result);
+await engine.close();
+```
+
+### 依赖说明
+
+`@npm-safe/dsh-tool-npm-safe` 将 `@npm-safe/core` 声明为依赖。根据你的项目
+结构，可以选择：
+
+- **同时安装两个 tarball**（插件会解析自身携带的 `@npm-safe/core` 副本），或
+- 将它们安装到一个 **workspace** 中，利用统一提升的 `@npm-safe/core` 同时满足
+  两者。
+
+所有 peer 包必须属于同一 RC 版本族：`dsh-tools` / `dsh-jobs-local`
+**0.1.0-rc.6**，cordis **^4.0.1**。
+
 ---
 ## 工具
 
