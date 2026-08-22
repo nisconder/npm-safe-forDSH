@@ -27,5 +27,14 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nisconder/npm-safe-forDSH.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/nisconder/npm-safe-forDSH#readme",
+  "bugs": {
+    "url": "https://github.com/nisconder/npm-safe-forDSH/issues"
   }
 }
