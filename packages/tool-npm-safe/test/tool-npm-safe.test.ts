@@ -93,7 +93,7 @@ const mock = vi.hoisted(() => {
   return { FakeNpmSafeEngine, instances }
 })
 
-vi.mock('@npm-safe/core', () => ({
+vi.mock('@npm-safe/core-dsh', () => ({
   NpmSafeEngine: mock.FakeNpmSafeEngine,
 }))
 

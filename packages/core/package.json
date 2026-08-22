@@ -1,5 +1,5 @@
 {
-  "name": "@npm-safe/core",
+  "name": "@npm-safe/core-dsh",
   "version": "1.0.5",
   "description": "Supply-chain security scanner for npm packages",
   "license": "Apache-2.0",

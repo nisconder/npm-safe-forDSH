@@ -1,5 +1,5 @@
-import { NpmSafeEngine } from '@npm-safe/core'
-import type { Severity, SecurityLevel, RuleDescriptor } from '@npm-safe/core'
+import { NpmSafeEngine } from '@npm-safe/core-dsh'
+import type { Severity, SecurityLevel, RuleDescriptor } from '@npm-safe/core-dsh'
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { JobKind, JobOutcome } from '@deepseek-ai/dsh-jobs'

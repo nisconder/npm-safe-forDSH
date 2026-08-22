@@ -6,7 +6,7 @@
 // 该脚本会真实请求 npm registry（ciScan 会检查 fixture 项目的 lodash 依赖）。
 // 状态文件 ./.smoke-facade.db 与 fixture 目录 .smoke-project/ 均已在 .gitignore 内。
 
-import { NpmSafeEngine } from '@npm-safe/core'
+import { NpmSafeEngine } from '@npm-safe/core-dsh'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 
 const FIXTURE_DIR = '.smoke-project'
