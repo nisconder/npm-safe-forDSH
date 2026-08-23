@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/Node.js-22.19%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![pnpm](https://img.shields.io/badge/pnpm-11.7.0-F69220?logo=pnpm&logoColor=white)](https://pnpm.io)
 
-[中文版](README_zh.md) · **English**
+[English](README.md) · [Chinese](README_zh.md)
 
 </div>
 
@@ -22,11 +22,11 @@ call package security scans directly inside a conversation, acting as a
 search, watchlist, refresh, rules, settings, and CI gate scans — is mapped to
 **14 dsh tools**, including a background `refresh_all` job.
 
-## 原仓库 / Original repository
+## Original Repository
 
-- 本仓库：https://github.com/nisconder/npm-safe-forDSH
-- 引擎原仓库（`@npm-safe/core` 源码来源，只读参考）：https://github.com/nisconder/npm-safe
-- dsh 平台（DeepSeek Harness）：https://github.com/deepseek-ai/deepseek-harness
+- This repository: https://github.com/nisconder/npm-safe-forDSH
+- Original engine repository (read-only reference for `@npm-safe/core` source): https://github.com/nisconder/npm-safe
+- dsh platform (DeepSeek Harness): https://github.com/deepseek-ai/deepseek-harness
 
 ## Quick Start
 
