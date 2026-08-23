@@ -11,3 +11,4 @@ coverage/
 .npm-cache/
 .dlx-store/
 .dsh-home/
+release-assets/

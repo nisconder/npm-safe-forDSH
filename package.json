@@ -5,5 +5,13 @@
   "packageManager": "pnpm@11.7.0",
   "engines": { "node": ">=22.19" },
   "scripts": { "typecheck": "pnpm -r run typecheck", "build": "pnpm -r run build", "test": "pnpm -r run test" },
-  "devDependencies": { "@npm-safe/core": "workspace:^" }
+  "devDependencies": { "@npm-safe/core": "workspace:^" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nisconder/npm-safe-forDSH.git"
+  },
+  "homepage": "https://github.com/nisconder/npm-safe-forDSH#readme",
+  "bugs": {
+    "url": "https://github.com/nisconder/npm-safe-forDSH/issues"
+  }
 }

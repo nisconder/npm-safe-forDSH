@@ -1,6 +1,6 @@
 <div align="center">
 
-# npm-safe-dsh
+# npm-safe-forDSH
 **面向 DeepSeek Harness 的 npm 供应链安全**
 
 [![Version](https://img.shields.io/badge/version-0.1.0-2196F3)](https://github.com/nisconder/npm-safe-forDSH/releases)
@@ -15,11 +15,17 @@
 </div>
 
 ---
-`npm-safe-dsh` 将本地优先的 npm 供应链安全引擎 **`@npm-safe/core`**
+`npm-safe-forDSH` 将本地优先的 npm 供应链安全引擎 **`@npm-safe/core`**
 重新架构为 **DeepSeek Harness（dsh）工具插件**。AI 智能体可以在会话中直接调用
 包安全扫描，作为「安装前先检查」的安全门禁。引擎的完整能力——检查、搜索、监视、
 刷新、规则、设置与 CI 门禁扫描——被映射为 **14 个 dsh 工具**，含后台
 `refresh_all` 任务。
+
+## 原仓库 / Original repository
+
+- 本仓库：https://github.com/nisconder/npm-safe-forDSH
+- 引擎原仓库（`@npm-safe/core` 源码来源，只读参考）：https://github.com/nisconder/npm-safe
+- dsh 平台（DeepSeek Harness）：https://github.com/deepseek-ai/deepseek-harness
 
 ## 快速开始
 
@@ -73,15 +79,12 @@ node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 pnpm workspace monorepo，包含两个包：
 
 ```
-npm-safe-dsh/
+npm-safe-forDSH/
 ├── package.json                 # 私有根包：pnpm@11.7.0、聚合脚本
 ├── pnpm-workspace.yaml          # workspace = packages/*；better-sqlite3 放行
 ├── tsconfig.base.json           # 共享严格 TS 配置
 ├── .npmrc                       # only-built-dependencies[]=better-sqlite3
 ├── .github/workflows/ci.yml     # Node 22.19 + 24 矩阵：build → typecheck → test
-├── docs/
-│   ├── npm-safe-dsh-plugin-migration.md   # 迁移实施规范（权威）
-│   └── HANDOVER.md                        # 交接文档
 ├── scripts/
 │   ├── smoke.mjs                # checkPackage 冒烟（真实触网）
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan 冒烟
@@ -138,9 +141,9 @@ pnpm dsh --profile headless "check lodash"
 
 ## 更多文档
 
-- [HANDOVER.md](docs/HANDOVER.md) — 状态、任务进度、关键技术决策、已知注意事项
-- [npm-safe-dsh-plugin-migration.md](docs/npm-safe-dsh-plugin-migration.md) — 迁移实施规范（权威）
-- `packages/core/API.md` · `ARCHITECTURE.md` · `SCANNER_RULES.md` — 引擎参考
+- [packages/core/API.md](packages/core/API.md) — 引擎 API 参考
+- [packages/core/ARCHITECTURE.md](packages/core/ARCHITECTURE.md) — 引擎架构
+- [packages/core/SCANNER_RULES.md](packages/core/SCANNER_RULES.md) — 扫描规则参考
 
 ## 许可证
 

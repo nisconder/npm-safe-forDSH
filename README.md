@@ -1,6 +1,6 @@
 <div align="center">
 
-# npm-safe-dsh
+# npm-safe-forDSH
 **npm Supply-Chain Security for DeepSeek Harness**
 
 [![Version](https://img.shields.io/badge/version-0.1.0-2196F3)](https://github.com/nisconder/npm-safe-forDSH/releases)
@@ -15,12 +15,18 @@
 </div>
 
 ---
-`npm-safe-dsh` re-architects the local-first npm supply-chain security engine
+`npm-safe-forDSH` re-architects the local-first npm supply-chain security engine
 **`@npm-safe/core`** as a **DeepSeek Harness (dsh) tool plugin**. AI agents can
 call package security scans directly inside a conversation, acting as a
 "check before you install" gate. The engine's full capability — checking,
 search, watchlist, refresh, rules, settings, and CI gate scans — is mapped to
 **14 dsh tools**, including a background `refresh_all` job.
+
+## 原仓库 / Original repository
+
+- 本仓库：https://github.com/nisconder/npm-safe-forDSH
+- 引擎原仓库（`@npm-safe/core` 源码来源，只读参考）：https://github.com/nisconder/npm-safe
+- dsh 平台（DeepSeek Harness）：https://github.com/deepseek-ai/deepseek-harness
 
 ## Quick Start
 
@@ -77,15 +83,12 @@ dsh session:
 A pnpm workspace monorepo with two packages:
 
 ```
-npm-safe-dsh/
+npm-safe-forDSH/
 ├── package.json                 # Private root: pnpm@11.7.0, aggregate scripts
 ├── pnpm-workspace.yaml          # workspace = packages/*; better-sqlite3 allowlist
 ├── tsconfig.base.json           # Shared strict TS config
 ├── .npmrc                       # only-built-dependencies[]=better-sqlite3
 ├── .github/workflows/ci.yml     # Node 22.19 + 24 matrix: build → typecheck → test
-├── docs/
-│   ├── npm-safe-dsh-plugin-migration.md   # Migration spec (authoritative)
-│   └── HANDOVER.md                        # Handover doc
 ├── scripts/
 │   ├── smoke.mjs                # checkPackage smoke (live registry)
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan smoke
@@ -143,9 +146,9 @@ pnpm dsh --profile headless "check lodash"
 
 ## Documentation
 
-- [HANDOVER.md](docs/HANDOVER.md) — status, task progress, key decisions, known caveats
-- [npm-safe-dsh-plugin-migration.md](docs/npm-safe-dsh-plugin-migration.md) — migration spec (authoritative)
-- `packages/core/API.md` · `ARCHITECTURE.md` · `SCANNER_RULES.md` — engine reference
+- [packages/core/API.md](packages/core/API.md) — engine API reference
+- [packages/core/ARCHITECTURE.md](packages/core/ARCHITECTURE.md) — engine architecture
+- [packages/core/SCANNER_RULES.md](packages/core/SCANNER_RULES.md) — scanner rules reference
 
 ## License
 
