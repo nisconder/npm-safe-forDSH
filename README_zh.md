@@ -3,7 +3,7 @@
 # npm-safe-forDSH
 **面向 DeepSeek Harness 的 npm 供应链安全**
 
-[![Version](https://img.shields.io/badge/version-0.1.0-2196F3)](https://github.com/nisconder/npm-safe-forDSH/releases)
+[![Version](https://img.shields.io/github/v/release/nisconder/npm-safe-forDSH)](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](./LICENSE)
 ![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
 [![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions)
@@ -58,6 +58,65 @@ node scripts/smoke.mjs definitely-not-real-xyz # 不存在的包 → exists:fals
 node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
 ```
 
+## 安装
+
+两个包均已发布至 npm registry：
+
+```bash
+pnpm add @npm-safe/core-dsh           # 引擎
+pnpm add @npm-safe/dsh-tool-npm-safe  # dsh 插件
+```
+
+> 原始 `@npm-safe/core` 属于
+> [npm-safe](https://github.com/nisconder/npm-safe) 仓库，本 fork 未对其做任何改动。
+
+- **源码与发布**：https://github.com/nisconder/npm-safe-forDSH
+  （[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)）
+- **引擎原仓库**（只读参考）：https://github.com/nisconder/npm-safe
+
+### 从源码构建
+
+按照上方[快速开始](#快速开始)步骤安装依赖并构建工作区：
+
+```bash
+corepack enable
+corepack prepare pnpm@11.7.0 --activate
+pnpm install
+pnpm run build
+```
+
+构建完成后，引擎产物位于 `packages/core/dist`，dsh 插件产物位于
+`packages/tool-npm-safe/lib`。通过 pnpm workspace 链接引用，或直接将工具链
+指向构建产物路径。
+
+### 在 dsh 运行时中使用插件
+
+> **需要 `DEEPSEEK_API_KEY`。** 启动 dsh 前请在环境变量中导出，或将其放置于
+> 项目根目录的 `.env` 文件中。
+
+```bash
+pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
+# Web UI：http://127.0.0.1:3080 — 提问 "check lodash"
+
+# 或以 headless 模式运行：
+pnpm dsh --profile headless "check lodash"
+```
+
+所有 dsh peer 包必须属于同一 RC 版本族（`@deepseek-ai/dsh-tools` /
+`dsh-jobs-local` 0.1.0-rc.x，`@deepseek-ai/cordis` ^4.0.1）。升级时必须
+全仓对齐。
+
+### 将引擎作为库使用
+
+```ts
+import { NpmSafeEngine } from "@npm-safe/core-dsh";
+
+const engine = new NpmSafeEngine();
+const result = await engine.checkPackage("lodash");
+console.log(result);
+await engine.close();
+```
+
 ---
 ## 工具
 
@@ -89,7 +148,7 @@ npm-safe-forDSH/
 │   ├── smoke.mjs                # checkPackage 冒烟（真实触网）
 │   └── smoke-facade.mjs         # watchlist / settings / ciScan 冒烟
 └── packages/
-    ├── core/                    # @npm-safe/core 引擎（已剔除 CLI/桌面端/telemetry）
+    ├── core/                    # @npm-safe/core-dsh 引擎（已剔除 CLI/桌面端/telemetry）
     └── tool-npm-safe/           # @npm-safe/dsh-tool-npm-safe 插件（14 个工具）
 ```
 

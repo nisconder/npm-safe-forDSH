@@ -1,7 +1,7 @@
 {
   "name": "@npm-safe/dsh-tool-npm-safe",
-  "version": "0.1.0",
-  "description": "dsh tool plugin exposing @npm-safe/core supply-chain security checks",
+  "version": "0.1.1",
+  "description": "dsh tool plugin exposing @npm-safe/core-dsh supply-chain security checks",
   "license": "Apache-2.0",
   "type": "module",
   "main": "lib/index.js",
@@ -29,7 +29,7 @@
     "@deepseek-ai/dsh-tools": "0.1.0-rc.6"
   },
   "dependencies": {
-    "@npm-safe/core": "workspace:^"
+    "@npm-safe/core-dsh": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

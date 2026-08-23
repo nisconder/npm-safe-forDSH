@@ -8,7 +8,7 @@ importers:
 
   .:
     devDependencies:
-      '@npm-safe/core':
+      '@npm-safe/core-dsh':
         specifier: workspace:^
         version: link:packages/core
 
@@ -36,7 +36,7 @@ importers:
 
   packages/tool-npm-safe:
     dependencies:
-      '@npm-safe/core':
+      '@npm-safe/core-dsh':
         specifier: workspace:^
         version: link:../core
     devDependencies:

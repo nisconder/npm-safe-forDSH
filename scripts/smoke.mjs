@@ -1,4 +1,4 @@
-// 一次性冒烟脚本：用真实 npm registry 验证迁移后的 @npm-safe/core 引擎端到端可用。
+// 一次性冒烟脚本：用真实 npm registry 验证迁移后的 @npm-safe/core-dsh 引擎端到端可用。
 //
 // 用法：
 //   node scripts/smoke.mjs lodash                       # 检查一个真实包
@@ -7,7 +7,7 @@
 // 该脚本会真实请求 npm registry（触网），这是仓库中唯一允许触网的脚本。
 // 引擎状态文件 ./.smoke.db 已在 .gitignore 内（*.db），不会入库。
 
-import { NpmSafeEngine } from '@npm-safe/core'
+import { NpmSafeEngine } from '@npm-safe/core-dsh'
 
 const target = process.argv[2] ?? 'lodash'
 
