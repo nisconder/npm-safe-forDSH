@@ -51,8 +51,9 @@ jobs:
             if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
               echo "Skipping ${package_name}@${package_version}: already published"
             else
-              tarball_path="${RUNNER_TEMP}/${package_name//@/}"
-              tarball_path="${tarball_path//\//-}-${package_version}.tgz"
+              package_slug="${package_name//@/}"
+              package_slug="${package_slug//\//-}"
+              tarball_path="${RUNNER_TEMP}/${package_slug}-${package_version}.tgz"
               pnpm --dir "${package_dir}" pack --out "${tarball_path}"
               npm publish "${tarball_path}"
             fi
