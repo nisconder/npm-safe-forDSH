@@ -1,0 +1,30 @@
+name: False positive
+description: Report a finding that appears incorrect or too severe
+title: "[False positive]: "
+labels: ["false-positive"]
+body:
+  - type: input
+    id: package
+    attributes:
+      label: Package and exact version
+      placeholder: "example-package@1.2.3"
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule or finding name
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Why this appears to be a false positive
+      description: Include the relevant public source link or registry metadata when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Sanitized scan output
+      render: json

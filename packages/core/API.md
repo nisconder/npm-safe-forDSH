@@ -57,7 +57,7 @@ This document describes every public export from `@npm-safe/core` in Phase 1. Si
 ## Installation
 
 ```bash
-pnpm add @npm-safe/core
+pnpm add @npm-safe/core-dsh
 ```
 
 ## Import Notes

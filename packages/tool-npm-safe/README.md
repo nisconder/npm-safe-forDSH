@@ -7,11 +7,17 @@
 
 A [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness) tool plugin that exposes the [`@npm-safe/core-dsh`](https://www.npmjs.com/package/@npm-safe/core-dsh) supply-chain security engine as 14 dsh tools. AI agents can call package security scans directly inside a conversation, acting as a "check before you install" gate.
 
+If this plugin is useful in your workflow, please [Star the repository](https://github.com/nisconder/npm-safe-forDSH) so other DSH users can find it.
+
 ## Installation
 
 ```bash
-pnpm add @npm-safe/dsh-tool-npm-safe
+dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe
+dsh --profile tui
 ```
+
+The package declares a DSH bundle and activates `cordis.patch.yml`
+automatically. Restart an already-running profile after installation.
 
 ### Peer Dependencies
 
@@ -25,14 +31,15 @@ This plugin requires the following peer packages (all from the same RC family):
 
 ## Quick Start
 
-> **`DEEPSEEK_API_KEY` is required.** Export it in your environment or place it in a `.env` file at the project root before launching dsh.
+Configure a model provider in DSH, then ask the agent to scan a package. A
+DeepSeek API key is only required when DeepSeek is your selected provider.
 
 ```bash
-# Web UI
-pnpm dsh web --patch ./node_modules/@npm-safe/dsh-tool-npm-safe/cordis.patch.yml
+dsh --profile tui
+```
 
-# Headless
-pnpm dsh --profile headless "check lodash"
+```text
+Deep-scan fast-glob before installing it. Explain every finding.
 ```
 
 ## Tools

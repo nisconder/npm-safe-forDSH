@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible scanner or DSH plugin problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve npm-safe-forDSH. Do not include secrets or unpublished vulnerability details.
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      placeholder: "0.1.3"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Node 24, DSH 0.1.0-rc.6, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Include the package name and version, command or prompt, observed output, and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed API keys, tokens, credentials, and private source code.
+          required: true
+        - label: This is not an unpatched security vulnerability.
+          required: true

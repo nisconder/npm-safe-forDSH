@@ -1,7 +1,7 @@
 {
   "name": "@npm-safe/core-dsh",
-  "version": "1.0.5",
-  "description": "Supply-chain security scanner for npm packages",
+  "version": "1.0.6",
+  "description": "Local-first npm supply-chain security engine with metadata and deep tarball scanning",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,6 +13,21 @@
     }
   },
   "files": ["dist"],
+  "keywords": [
+    "npm-security",
+    "supply-chain-security",
+    "dependency-security",
+    "malware-detection",
+    "static-analysis",
+    "security-scanner"
+  ],
+  "engines": {
+    "node": ">=22.19"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",

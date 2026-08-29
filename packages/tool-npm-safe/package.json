@@ -1,7 +1,7 @@
 {
   "name": "@npm-safe/dsh-tool-npm-safe",
-  "version": "0.1.1",
-  "description": "dsh tool plugin exposing @npm-safe/core-dsh supply-chain security checks",
+  "version": "0.1.3",
+  "description": "DeepSeek Harness plugin that blocks risky npm installs with metadata and deep supply-chain scans",
   "license": "Apache-2.0",
   "type": "module",
   "main": "lib/index.js",
@@ -11,13 +11,34 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml"
   ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "npm-security",
+    "supply-chain-security",
+    "security-scanner",
+    "ai-agent"
+  ],
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",

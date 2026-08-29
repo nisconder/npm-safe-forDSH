@@ -1,224 +1,167 @@
 <div align="center">
 
-# npm-safe-forDSH
-**npm Supply-Chain Security for DeepSeek Harness**
+# npm-safe for DeepSeek Harness
 
-[![Version](https://img.shields.io/github/v/release/nisconder/npm-safe-forDSH)](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-[![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](./LICENSE)
-![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
-[![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions)
+**Stop AI agents before they install a risky npm package.**
+
+[![npm](https://img.shields.io/npm/v/@npm-safe/dsh-tool-npm-safe?logo=npm&color=CB3837)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
+[![downloads](https://img.shields.io/npm/dm/@npm-safe/dsh-tool-npm-safe?logo=npm)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
+[![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](LICENSE)
 [![Node](https://img.shields.io/badge/Node.js-22.19%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-11.7.0-F69220?logo=pnpm&logoColor=white)](https://pnpm.io)
 
-[English](README.md) · [Chinese](README_zh.md)
+**14 agent tools · 22 security checks · integrity-verified deep scans · local SQLite cache**
+
+[Install](#30-second-install) · [See what it catches](#what-it-catches) · [Tool catalog](#14-agent-tools) · [中文](README_zh.md)
 
 </div>
 
----
-`npm-safe-forDSH` re-architects the local-first npm supply-chain security engine
-**`@npm-safe/core`** as a **DeepSeek Harness (dsh) tool plugin**. AI agents can
-call package security scans directly inside a conversation, acting as a
-"check before you install" gate. Optional deep scans download the published
-tarball, verify its integrity, and inspect bounded source content entirely in
-memory. The engine's full capability — checking,
-search, watchlist, refresh, rules, settings, and CI gate scans — is mapped to
-**14 dsh tools**, including a background `refresh_all` job.
+`npm-safe-forDSH` is a supply-chain security gate for
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It lets an
+agent inspect npm package metadata and published tarballs **before** an install,
+then returns evidence, a risk level, and an explainable score inside the same
+conversation.
 
-## Original Repository
+> If this makes your agent workflow safer, please **Star the repository**. It
+> helps other DSH users find an independent security tool.
 
-- This repository: https://github.com/nisconder/npm-safe-forDSH
-- Original engine repository (read-only reference for `@npm-safe/core` source): https://github.com/nisconder/npm-safe
-- dsh platform (DeepSeek Harness): https://github.com/deepseek-ai/deepseek-harness
-
-## Quick Start
-
-Requires Node.js 22.19 or later and pnpm 11.7.0 (via Corepack).
+## 30-second install
 
 ```bash
-corepack enable
-corepack prepare pnpm@11.7.0 --activate
-pnpm install
+dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe
+dsh --profile tui
 ```
 
-> **better-sqlite3 build allowlist**: `better-sqlite3` is a native module and
-> pnpm 11 blocks its build scripts by default. Allowlist is configured in
-> `pnpm-workspace.yaml` (`pnpm.onlyBuiltDependencies` / `allowBuilds`) and
-> `.npmrc` (`only-built-dependencies[]=better-sqlite3`). If still blocked, run
-> `pnpm approve-builds` and select `better-sqlite3`.
+Restart a running profile after installation. Then ask:
 
-**Static verification** (build first so the plugin can resolve
-`packages/core/dist`):
+```text
+Deep-scan fast-glob before installing it. Explain every finding.
+```
+
+For a quick metadata-only check:
+
+```text
+Use check_package to check lodash.
+```
+
+The plugin is declared as a native DSH bundle, so the official `dsh plugin`
+command installs the package and activates its `cordis.patch.yml` layer. Your
+selected DSH model provider must already be configured; a DeepSeek API key is
+only required when DeepSeek is the selected provider.
+
+## What it catches
+
+| Signal | Metadata scan | Deep scan |
+|---|:---:|:---:|
+| Suspicious lifecycle scripts and install hooks | ✅ | ✅ |
+| Typosquatting, abandoned packages, risky maintainers | ✅ | ✅ |
+| Non-standard registries and remote binaries | ✅ | ✅ |
+| Tarball integrity mismatch and unsafe archive paths | — | ✅ |
+| Obfuscated code, embedded secrets, shell/network execution | — | ✅ |
+| Native binaries, WebAssembly, oversized or truncated content | — | ✅ |
+
+Metadata scans are fast and remain the default. Set `deep: true` to download
+the same-origin published tarball, verify npm integrity metadata, and inspect
+bounded source content entirely in memory.
+
+```text
+package: fast-glob@3.3.3
+level: safe
+score: 88/100
+integrity: verified
+files scanned: 91
+findings: 1 low, 0 medium, 0 high, 0 critical
+```
+
+## Why use it in an agent
+
+| Typical agent workflow | With npm-safe-forDSH |
+|---|---|
+| Installs first and audits later | Checks before the install decision |
+| Trusts package names and download counts | Evaluates maintainers, scripts, provenance signals, and content |
+| Returns a pass/fail with little context | Returns findings, evidence, severity, score, and recommendations |
+| Repeats registry traffic | Uses a local SQLite cache and rate limiting |
+| Checks one package manually | Supports batch checks, watchlists, refresh jobs, and CI gates |
+
+## 14 agent tools
+
+| Tool | Purpose |
+|---|---|
+| `check_package` | Check one package, optionally with `deep: true` |
+| `check_packages` | Rate-limited batch checking |
+| `search_packages` | Search the npm registry |
+| `watch_add` / `watch_remove` / `watch_list` | Manage a persistent watchlist |
+| `rules_list` / `rule_enable` / `rule_disable` | Inspect and toggle rules |
+| `rule_set_severity` | Override a rule severity |
+| `settings_get` / `settings_set` | Read or update engine settings |
+| `ci_scan` | Scan a project's dependencies as a security gate |
+| `refresh_all` | Refresh the watchlist as a background DSH job |
+
+## Security model
+
+- Core detection is deterministic and local-first; no package source is sent
+  to an external LLM by default.
+- Deep scans reject cross-origin tarballs and enforce archive size, file count,
+  decompression, path, and scanned-text limits.
+- Findings are evidence, not a guarantee that a package is safe. Review high
+  impact packages and pin versions in production.
+- See the complete [scanner rules](packages/core/SCANNER_RULES.md) and
+  [security policy](SECURITY.md).
+
+## Use the engine directly
 
 ```bash
-pnpm run build
-pnpm run typecheck
-pnpm run test
+pnpm add @npm-safe/core-dsh
 ```
-
-**One-shot smoke tests** (network required — hits the live npm registry):
-
-```bash
-node scripts/smoke.mjs lodash                  # prints level / score / findings
-node scripts/smoke.mjs definitely-not-real-xyz # missing package → exists:false
-node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
-```
-
-## Installation
-
-Both packages are published to the npm registry:
-
-```bash
-pnpm add @npm-safe/core-dsh           # engine
-pnpm add @npm-safe/dsh-tool-npm-safe  # dsh plugin
-```
-
-> The original `@npm-safe/core` belongs to the
-> [npm-safe](https://github.com/nisconder/npm-safe) repository and is
-> untouched by this fork.
-
-- **Source & releases**: https://github.com/nisconder/npm-safe-forDSH
-  ([latest release](https://github.com/nisconder/npm-safe-forDSH/releases/latest))
-- **Engine original repository** (read-only reference):
-  https://github.com/nisconder/npm-safe
-
-### Build from source
-
-Follow the [Quick Start](#quick-start) steps above to install dependencies and
-build the workspace:
-
-```bash
-corepack enable
-corepack prepare pnpm@11.7.0 --activate
-pnpm install
-pnpm run build
-```
-
-After building, the engine output lives in `packages/core/dist` and the dsh
-plugin output in `packages/tool-npm-safe/lib`. Reference them via pnpm
-workspace links or point your tooling at the built paths directly.
-
-### Using the plugin in a dsh runtime
-
-> **`DEEPSEEK_API_KEY` is required.** Export it in your environment or place it
-> in a `.env` file at the project root before launching dsh.
-
-```bash
-pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
-# Web UI: http://127.0.0.1:3080 — ask "check lodash"
-
-# Or run headless:
-pnpm dsh --profile headless "check lodash"
-```
-
-All dsh peer packages must belong to the same RC family (`@deepseek-ai/dsh-tools`
-/ `dsh-jobs-local` 0.1.0-rc.x, `@deepseek-ai/cordis` ^4.0.1). Upgrades must
-stay aligned across the whole repo.
-
-### Using the engine as a library
 
 ```ts
 import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
-const result = await engine.checkPackage("lodash", { deep: true });
-console.log(result);
+const report = await engine.checkPackage("lodash", { deep: true });
+console.log(report.level, report.score, report.findings);
 await engine.close();
 ```
 
----
-## Tools
+## Develop from source
 
-The `@npm-safe/dsh-tool-npm-safe` plugin registers the following tools in a
-dsh session:
-
-| Tool | Purpose | Execution |
-|---|---|---|
-| `check_package` | Check one package; optional `deep` tarball inspection | Foreground (signal-forwarded) |
-| `check_packages` | Check many packages; optional `deep` inspection | Foreground (rate-limited) |
-| `search_packages` | Keyword search of the registry | Foreground |
-| `watch_add` / `watch_remove` / `watch_list` | Watchlist management | Foreground |
-| `rules_list` / `rule_enable` / `rule_disable` / `rule_set_severity` | Rule management | Foreground |
-| `settings_get` / `settings_set` | Engine settings | Foreground |
-| `ci_scan` | Dependency gate scan; optional `deep` inspection | Foreground |
-| `refresh_all` | Refresh the watchlist | Background (`ctx.jobs.start`) |
-
-Set `deep: true` on `check_package`, `check_packages`, or `ci_scan` when the
-agent needs higher assurance before installation. Deep scans enforce archive,
-file-count, decompression, and text-byte limits; reject cross-origin tarballs;
-and report integrity, files scanned, truncation, and content findings. Because
-they download package archives, keep metadata-only scans as the fast default.
-
-## Architecture
-
-A pnpm workspace monorepo with two packages:
-
-```
-npm-safe-forDSH/
-├── package.json                 # Private root: pnpm@11.7.0, aggregate scripts
-├── pnpm-workspace.yaml          # workspace = packages/*; better-sqlite3 allowlist
-├── tsconfig.base.json           # Shared strict TS config
-├── .npmrc                       # only-built-dependencies[]=better-sqlite3
-├── .github/workflows/ci.yml     # Node 22.19 + 24 matrix: build → typecheck → test
-├── scripts/
-│   ├── smoke.mjs                # checkPackage smoke (live registry)
-│   └── smoke-facade.mjs         # watchlist / settings / ciScan smoke
-└── packages/
-    ├── core/                    # @npm-safe/core-dsh engine (CLI/desktop/telemetry stripped)
-    └── tool-npm-safe/           # @npm-safe/dsh-tool-npm-safe plugin (14 tools)
-```
-
-## CI
-
-`.github/workflows/ci.yml` runs on every push / PR: Node 22.19 and 24 matrix,
-Corepack enabled, `pnpm install` → `pnpm run build` →
-`pnpm run typecheck` → `pnpm run test`.
-
-## Manual dsh Verification
-
-End-to-end verification in dsh (Web UI / headless) needs the dsh CLI and an API
-key. **The plugin is not published to npm yet**, so `cordis.patch.yml` — which
-names `@npm-safe/dsh-tool-npm-safe` — cannot be resolved until it is published.
-For local verification, mount the plugin source directly with a temporary patch.
-
-Configure the API key in a root `.env` file:
+Requires Node.js 22.19+ and Corepack.
 
 ```bash
-# DEEPSEEK_API_KEY=sk-...
+git clone https://github.com/nisconder/npm-safe-forDSH.git
+cd npm-safe-forDSH
+corepack enable
+corepack prepare pnpm@11.7.0 --activate
+pnpm install
+pnpm run build
+pnpm run typecheck
+pnpm run test
 ```
 
-Create a temporary local patch at the repo root (replace `<abs>` with the repo's
-absolute path):
-
-```yaml
-# local.patch.yml
-- insert:
-    - id: tool-npm-safe
-      name: 'file://<abs>/packages/tool-npm-safe/src/index.ts'
-```
-
-Run headless (verified working on `0.1.0-rc.6`):
+Live registry smoke tests:
 
 ```bash
-pnpm dlx @deepseek-ai/dsh@0.1.0-rc.6 --profile headless \
-  --patch ./local.patch.yml \
-  "Use the check_package tool to check lodash"
+node scripts/smoke.mjs lodash
+node scripts/smoke-facade.mjs
 ```
 
-Once the plugin is published, `cordis.patch.yml` can be used directly:
-
-```bash
-pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
-pnpm dsh --profile headless "check lodash"
-```
-
-> All dsh packages are pinned to the same RC family (`0.1.0-rc.6`, cordis
-> `^4.0.1`). Upgrades must stay aligned across the whole repo.
+The workspace contains [`@npm-safe/core-dsh`](packages/core) and the
+[`@npm-safe/dsh-tool-npm-safe`](packages/tool-npm-safe) bundle. DSH peer
+packages are aligned to the `0.1.0-rc.6` family; upgrades must remain aligned
+while DeepSeek Harness is in developer preview.
 
 ## Documentation
 
-- [packages/core/API.md](packages/core/API.md) — engine API reference
-- [packages/core/ARCHITECTURE.md](packages/core/ARCHITECTURE.md) — engine architecture
-- [packages/core/SCANNER_RULES.md](packages/core/SCANNER_RULES.md) — scanner rules reference
+- [Plugin package and examples](packages/tool-npm-safe/README.md)
+- [Engine API](packages/core/API.md)
+- [Architecture](packages/core/ARCHITECTURE.md)
+- [Scanner rules](packages/core/SCANNER_RULES.md)
+- [Contributing](CONTRIBUTING.md)
+
+This project adapts the engine from
+[`nisconder/npm-safe`](https://github.com/nisconder/npm-safe) for DeepSeek
+Harness. It is an independent community project and is not affiliated with or
+endorsed by DeepSeek.
 
 ## License
 

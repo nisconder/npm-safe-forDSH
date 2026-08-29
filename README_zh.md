@@ -1,214 +1,158 @@
 <div align="center">
 
-# npm-safe-forDSH
-**面向 DeepSeek Harness 的 npm 供应链安全**
+# npm-safe for DeepSeek Harness
 
-[![Version](https://img.shields.io/github/v/release/nisconder/npm-safe-forDSH)](https://github.com/nisconder/npm-safe-forDSH/releases/latest)
-[![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](./LICENSE)
-![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
-[![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions)
+**在 AI 智能体安装危险 npm 包之前拦住它。**
+
+[![npm](https://img.shields.io/npm/v/@npm-safe/dsh-tool-npm-safe?logo=npm&color=CB3837)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
+[![downloads](https://img.shields.io/npm/dm/@npm-safe/dsh-tool-npm-safe?logo=npm)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
+[![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](LICENSE)
 [![Node](https://img.shields.io/badge/Node.js-22.19%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-11.7.0-F69220?logo=pnpm&logoColor=white)](https://pnpm.io)
 
-[English](README.md) · **中文版**
+**14 个智能体工具 · 22 项安全检查 · 完整性验证深度扫描 · 本地 SQLite 缓存**
+
+[安装](#30-秒安装) · [检测内容](#能检测什么) · [工具目录](#14-个智能体工具) · [English](README.md)
 
 </div>
 
----
-`npm-safe-forDSH` 将本地优先的 npm 供应链安全引擎 **`@npm-safe/core`**
-重新架构为 **DeepSeek Harness（dsh）工具插件**。AI 智能体可以在会话中直接调用
-包安全扫描，作为「安装前先检查」的安全门禁。引擎的完整能力——检查、搜索、监视、
-刷新、规则、设置与 CI 门禁扫描——被映射为 **14 个 dsh 工具**。可选深度扫描会
-下载已发布 tarball、验证完整性，并在内存中按严格上限检查源码；工具集还包含后台
-`refresh_all` 任务。
+`npm-safe-forDSH` 是面向
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 npm
+供应链安全门禁。它让智能体在安装之前检查包元数据和已发布 tarball，并在同一段
+会话里返回证据、风险等级和可解释评分。
 
-## 原仓库 / Original repository
+> 如果它让你的智能体工作流更安全，请为仓库点一个 **Star**。这会帮助其他 DSH
+> 用户发现这个独立安全工具。
 
-- 本仓库：https://github.com/nisconder/npm-safe-forDSH
-- 引擎原仓库（`@npm-safe/core` 源码来源，只读参考）：https://github.com/nisconder/npm-safe
-- dsh 平台（DeepSeek Harness）：https://github.com/deepseek-ai/deepseek-harness
-
-## 快速开始
-
-要求 Node.js 22.19 及以上、pnpm 11.7.0（经 Corepack 管理）。
+## 30 秒安装
 
 ```bash
-corepack enable
-corepack prepare pnpm@11.7.0 --activate
-pnpm install
+dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe
+dsh --profile tui
 ```
 
-> **better-sqlite3 构建放行**：`better-sqlite3` 是原生模块，pnpm 11 默认拦截其
-> 构建脚本。放行已配置于 `pnpm-workspace.yaml`（`pnpm.onlyBuiltDependencies` /
-> `allowBuilds`）与 `.npmrc`（`only-built-dependencies[]=better-sqlite3`）。
-> 若仍被拦截，执行 `pnpm approve-builds` 并选择 `better-sqlite3`。
+安装后请重启正在运行的 profile，然后直接提问：
 
-**静态验证**（先 build，插件才能解析 `packages/core/dist`）：
+```text
+安装 fast-glob 前先做深度扫描，并解释每一项发现。
+```
+
+只做快速元数据检查：
+
+```text
+使用 check_package 检查 lodash。
+```
+
+插件已声明为原生 DSH bundle，因此官方 `dsh plugin` 命令会同时安装包并启用
+`cordis.patch.yml` 层。请先在 DSH 中配置你选择的模型提供方；只有选择 DeepSeek
+作为提供方时才需要 DeepSeek API Key。
+
+## 能检测什么
+
+| 信号 | 元数据扫描 | 深度扫描 |
+|---|:---:|:---:|
+| 可疑生命周期脚本和安装钩子 | ✅ | ✅ |
+| 拼写仿冒、废弃包和高风险维护者 | ✅ | ✅ |
+| 非标准 registry 和远程二进制文件 | ✅ | ✅ |
+| Tarball 完整性不匹配和危险归档路径 | — | ✅ |
+| 混淆代码、嵌入密钥、Shell/网络执行 | — | ✅ |
+| 原生二进制、WebAssembly、超限或截断内容 | — | ✅ |
+
+元数据扫描速度快，因此保持为默认模式。设置 `deep: true` 后，插件会下载同源的
+已发布 tarball、校验 npm 完整性元数据，并完全在内存中按严格边界检查源码。
+
+```text
+package: fast-glob@3.3.3
+level: safe
+score: 88/100
+integrity: verified
+files scanned: 91
+findings: 1 low, 0 medium, 0 high, 0 critical
+```
+
+## 为什么放进智能体
+
+| 普通智能体流程 | 使用 npm-safe-forDSH |
+|---|---|
+| 先安装，出问题后再审计 | 在做出安装决定前检查 |
+| 只相信包名和下载量 | 检查维护者、脚本、来源信号和实际内容 |
+| 只返回缺少上下文的通过/失败 | 返回证据、严重性、评分与建议 |
+| 重复请求 registry | 使用本地 SQLite 缓存和限流 |
+| 每次手动检查一个包 | 支持批量、监视列表、后台刷新和 CI 门禁 |
+
+## 14 个智能体工具
+
+| 工具 | 用途 |
+|---|---|
+| `check_package` | 检查单个包，可选 `deep: true` |
+| `check_packages` | 限流批量检查 |
+| `search_packages` | 搜索 npm registry |
+| `watch_add` / `watch_remove` / `watch_list` | 管理持久监视列表 |
+| `rules_list` / `rule_enable` / `rule_disable` | 查看并启停规则 |
+| `rule_set_severity` | 覆盖规则严重性 |
+| `settings_get` / `settings_set` | 读取或更新引擎设置 |
+| `ci_scan` | 将项目依赖扫描作为安全门禁 |
+| `refresh_all` | 以 DSH 后台任务刷新监视列表 |
+
+## 安全模型
+
+- 核心检测是确定性的、本地优先的；默认不会把包源码发送给外部 LLM。
+- 深度扫描拒绝跨域 tarball，并限制归档大小、文件数、解压量、路径与文本扫描量。
+- 检测结果是安全证据，不是绝对安全保证。生产环境仍应人工复核高影响依赖并锁定版本。
+- 查看完整的[扫描规则](packages/core/SCANNER_RULES.md)和[安全策略](SECURITY.md)。
+
+## 直接使用引擎
 
 ```bash
-pnpm run build
-pnpm run typecheck
-pnpm run test
+pnpm add @npm-safe/core-dsh
 ```
-
-**一次性冒烟验证**（需联网——请求真实 npm registry）：
-
-```bash
-node scripts/smoke.mjs lodash                  # 打印等级 / 评分 / 发现数
-node scripts/smoke.mjs definitely-not-real-xyz # 不存在的包 → exists:false
-node scripts/smoke-facade.mjs                  # watchlist / settings / ciScan
-```
-
-## 安装
-
-两个包均已发布至 npm registry：
-
-```bash
-pnpm add @npm-safe/core-dsh           # 引擎
-pnpm add @npm-safe/dsh-tool-npm-safe  # dsh 插件
-```
-
-> 原始 `@npm-safe/core` 属于
-> [npm-safe](https://github.com/nisconder/npm-safe) 仓库，本 fork 未对其做任何改动。
-
-- **源码与发布**：https://github.com/nisconder/npm-safe-forDSH
-  （[最新发布](https://github.com/nisconder/npm-safe-forDSH/releases/latest)）
-- **引擎原仓库**（只读参考）：https://github.com/nisconder/npm-safe
-
-### 从源码构建
-
-按照上方[快速开始](#快速开始)步骤安装依赖并构建工作区：
-
-```bash
-corepack enable
-corepack prepare pnpm@11.7.0 --activate
-pnpm install
-pnpm run build
-```
-
-构建完成后，引擎产物位于 `packages/core/dist`，dsh 插件产物位于
-`packages/tool-npm-safe/lib`。通过 pnpm workspace 链接引用，或直接将工具链
-指向构建产物路径。
-
-### 在 dsh 运行时中使用插件
-
-> **需要 `DEEPSEEK_API_KEY`。** 启动 dsh 前请在环境变量中导出，或将其放置于
-> 项目根目录的 `.env` 文件中。
-
-```bash
-pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
-# Web UI：http://127.0.0.1:3080 — 提问 "check lodash"
-
-# 或以 headless 模式运行：
-pnpm dsh --profile headless "check lodash"
-```
-
-所有 dsh peer 包必须属于同一 RC 版本族（`@deepseek-ai/dsh-tools` /
-`dsh-jobs-local` 0.1.0-rc.x，`@deepseek-ai/cordis` ^4.0.1）。升级时必须
-全仓对齐。
-
-### 将引擎作为库使用
 
 ```ts
 import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
-const result = await engine.checkPackage("lodash", { deep: true });
-console.log(result);
+const report = await engine.checkPackage("lodash", { deep: true });
+console.log(report.level, report.score, report.findings);
 await engine.close();
 ```
 
----
-## 工具
+## 从源码开发
 
-`@npm-safe/dsh-tool-npm-safe` 插件在 dsh 会话中注册以下工具：
-
-| 工具 | 用途 | 执行形态 |
-|---|---|---|
-| `check_package` | 检查单个包；可选 `deep` tarball 检测 | 前台（转发取消信号） |
-| `check_packages` | 批量检查；可选 `deep` 检测 | 前台（内部限流） |
-| `search_packages` | 关键词搜索注册表 | 前台 |
-| `watch_add` / `watch_remove` / `watch_list` | 监视列表管理 | 前台 |
-| `rules_list` / `rule_enable` / `rule_disable` / `rule_set_severity` | 规则管理 | 前台 |
-| `settings_get` / `settings_set` | 引擎设置 | 前台 |
-| `ci_scan` | 依赖门禁扫描；可选 `deep` 检测 | 前台 |
-| `refresh_all` | 刷新全部监视包 | 后台（`ctx.jobs.start`） |
-
-在安装前需要更高可信度时，可为 `check_package`、`check_packages` 或 `ci_scan`
-传入 `deep: true`。深度检测限制压缩包大小、解压大小、文件数和文本扫描字节数，
-拒绝跨域 tarball，并返回完整性、扫描文件数、截断状态及内容级发现。它需要下载
-包文件，因此快速的元数据扫描仍保持为默认行为。
-
-## 架构
-
-pnpm workspace monorepo，包含两个包：
-
-```
-npm-safe-forDSH/
-├── package.json                 # 私有根包：pnpm@11.7.0、聚合脚本
-├── pnpm-workspace.yaml          # workspace = packages/*；better-sqlite3 放行
-├── tsconfig.base.json           # 共享严格 TS 配置
-├── .npmrc                       # only-built-dependencies[]=better-sqlite3
-├── .github/workflows/ci.yml     # Node 22.19 + 24 矩阵：build → typecheck → test
-├── scripts/
-│   ├── smoke.mjs                # checkPackage 冒烟（真实触网）
-│   └── smoke-facade.mjs         # watchlist / settings / ciScan 冒烟
-└── packages/
-    ├── core/                    # @npm-safe/core-dsh 引擎（已剔除 CLI/桌面端/telemetry）
-    └── tool-npm-safe/           # @npm-safe/dsh-tool-npm-safe 插件（14 个工具）
-```
-
-## CI
-
-`.github/workflows/ci.yml` 在每次 push / PR 时运行：Node 22.19 与 24 矩阵、
-启用 Corepack、`pnpm install` → `pnpm run build` →
-`pnpm run typecheck` → `pnpm run test`。
-
-## 手动 dsh 验证
-
-在 dsh（Web UI / headless）中的端到端验证需要 dsh CLI 与 API key。
-**插件尚未发布到 npm**，因此 `cordis.patch.yml` 中使用的包名
-`@npm-safe/dsh-tool-npm-safe` 在发布前无法解析。本地验证需通过临时 patch
-直接挂载插件源码。
-
-在仓库根目录 `.env` 中配置 API key：
+要求 Node.js 22.19+ 与 Corepack。
 
 ```bash
-# DEEPSEEK_API_KEY=sk-...
+git clone https://github.com/nisconder/npm-safe-forDSH.git
+cd npm-safe-forDSH
+corepack enable
+corepack prepare pnpm@11.7.0 --activate
+pnpm install
+pnpm run build
+pnpm run typecheck
+pnpm run test
 ```
 
-在仓库根创建临时本地 patch（将 `<abs>` 替换为仓库绝对路径）：
-
-```yaml
-# local.patch.yml
-- insert:
-    - id: tool-npm-safe
-      name: 'file://<abs>/packages/tool-npm-safe/src/index.ts'
-```
-
-运行 headless（已在 `0.1.0-rc.6` 验证通过）：
+真实 npm registry 冒烟测试：
 
 ```bash
-pnpm dlx @deepseek-ai/dsh@0.1.0-rc.6 --profile headless \
-  --patch ./local.patch.yml \
-  "Use the check_package tool to check lodash"
+node scripts/smoke.mjs lodash
+node scripts/smoke-facade.mjs
 ```
 
-插件发布后，可直接使用 `cordis.patch.yml`：
+工作区包含 [`@npm-safe/core-dsh`](packages/core) 和
+[`@npm-safe/dsh-tool-npm-safe`](packages/tool-npm-safe) bundle。DSH peer 包与
+`0.1.0-rc.6` 版本族对齐；DeepSeek Harness 仍处于开发者预览阶段，升级时必须保持
+全仓版本一致。
 
-```bash
-pnpm dsh web --patch ./packages/tool-npm-safe/cordis.patch.yml
-pnpm dsh --profile headless "check lodash"
-```
+## 文档
 
-> 全部 dsh 包锁定同一 RC 版本族（`0.1.0-rc.6`，cordis `^4.0.1`）。
-> 升级时必须全仓对齐。
+- [插件包与示例](packages/tool-npm-safe/README.md)
+- [引擎 API](packages/core/API.md)
+- [架构](packages/core/ARCHITECTURE.md)
+- [扫描规则](packages/core/SCANNER_RULES.md)
+- [贡献指南](CONTRIBUTING.md)
 
-## 更多文档
-
-- [packages/core/API.md](packages/core/API.md) — 引擎 API 参考
-- [packages/core/ARCHITECTURE.md](packages/core/ARCHITECTURE.md) — 引擎架构
-- [packages/core/SCANNER_RULES.md](packages/core/SCANNER_RULES.md) — 扫描规则参考
+本项目将 [`nisconder/npm-safe`](https://github.com/nisconder/npm-safe) 引擎适配到
+DeepSeek Harness。它是独立社区项目，与 DeepSeek 没有关联，也未获得其官方背书。
 
 ## 许可证
 
