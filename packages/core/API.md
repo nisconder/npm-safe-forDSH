@@ -18,6 +18,7 @@ This document describes every public export from `@npm-safe/core` in Phase 1. Si
   - [FindingCategory](#findingcategory)
 - [Scanner Types](#scanner-types)
   - [ScanFinding](#scanfinding)
+  - [ContentScanSummary](#contentscansummary)
   - [ScanRule](#scanrule)
   - [StaticScanReport](#staticscanreport)
   - [LlmScanReport](#llmscanreport)
@@ -74,7 +75,7 @@ import type { SecurityLevel } from '@npm-safe/core';
 Interfaces and type aliases may use `import type`:
 
 ```ts
-import type { CheckResult, ScanFinding } from '@npm-safe/core';
+import type { CheckResult, ScanFinding } from '@npm-safe/core-dsh';
 ```
 
 The same distinction applies to the LLM provider exports. `LlmProviderType` is
@@ -110,10 +111,22 @@ Creates all internal collaborators (DatabaseManager, CacheManager, NpmRegistryCl
 #### checkPackage
 
 ```ts
-checkPackage(name: string): Promise<CheckResult>
+checkPackage(name: string, options?: CheckPackageOptions): Promise<CheckResult>
 ```
 
 Check a package by name. Cache-first: returns cached data if still fresh, otherwise fetches from the registry, runs static analysis, and caches the result.
+
+```ts
+interface CheckPackageOptions {
+  readonly deep?: boolean;
+  readonly forceRefresh?: boolean;
+  readonly signal?: AbortSignal;
+}
+```
+
+`deep: true` downloads the same-origin published tarball, verifies npm
+integrity metadata, and runs bounded in-memory content inspection. A cached
+metadata-only result is upgraded once and the deep summary is persisted.
 
 When the package does not exist on the registry (HTTP 404), the returned `CheckResult` has `exists: false` and the `security` / `registryInfo` fields are empty. All other errors (network failure, timeout) are rethrown.
 
@@ -131,6 +144,8 @@ Check many packages in parallel with a shared concurrency cap. Every check consu
 ```ts
 interface BatchCheckOptions {
   readonly concurrency?: number; // default 5
+  readonly deep?: boolean;
+  readonly signal?: AbortSignal;
   readonly onProgress?: (done: number, total: number, entry: BatchPackageResult) => void;
 }
 
@@ -524,8 +539,26 @@ interface ScanFinding {
   readonly message: string;
   readonly codeSnippet?: string;
   readonly lineNumber?: number;
+  readonly filePath?: string;
   readonly recommendation?: string;
   readonly category: FindingCategory;
+}
+```
+
+### ContentScanSummary
+
+Present on a static report when deep scanning was requested.
+
+```ts
+interface ContentScanSummary {
+  readonly status: 'complete' | 'partial' | 'failed';
+  readonly archiveBytes: number;
+  readonly unpackedBytes: number;
+  readonly filesScanned: number;
+  readonly filesSkipped: number;
+  readonly integrityVerified: boolean;
+  readonly truncated: boolean;
+  readonly reason?: string;
 }
 ```
 
@@ -577,6 +610,7 @@ interface StaticScanReport {
   readonly overallLevel: SecurityLevel;
   readonly score: number;
   readonly findings: readonly ScanFinding[];
+  readonly contentScan?: ContentScanSummary;
   readonly scannedAt: string;
 }
 ```
@@ -1137,7 +1171,12 @@ Accepts an optional custom rule array. Defaults to `BUILTIN_RULES`.
 #### Methods
 
 ```ts
-analyze(readme: string, packageJson?: Record<string, unknown>): StaticScanReport
+analyze(
+  readme: string,
+  packageJson?: Record<string, unknown>,
+  supplementalFindings?: readonly ScanFinding[],
+  contentScan?: ContentScanSummary,
+): StaticScanReport
 ```
 
 Runs all enabled rules against the given README and package.json. Scoring starts at 100 and subtracts per-finding weights (Critical -25, High -15, Medium -8, Low -3), clamped to [0, 100]. Overall level: `>= 80` Safe, `>= 50` Suspicious, `>= 20` Dangerous, else Unknown.

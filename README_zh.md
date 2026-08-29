@@ -18,7 +18,8 @@
 `npm-safe-forDSH` 将本地优先的 npm 供应链安全引擎 **`@npm-safe/core`**
 重新架构为 **DeepSeek Harness（dsh）工具插件**。AI 智能体可以在会话中直接调用
 包安全扫描，作为「安装前先检查」的安全门禁。引擎的完整能力——检查、搜索、监视、
-刷新、规则、设置与 CI 门禁扫描——被映射为 **14 个 dsh 工具**，含后台
+刷新、规则、设置与 CI 门禁扫描——被映射为 **14 个 dsh 工具**。可选深度扫描会
+下载已发布 tarball、验证完整性，并在内存中按严格上限检查源码；工具集还包含后台
 `refresh_all` 任务。
 
 ## 原仓库 / Original repository
@@ -112,7 +113,7 @@ pnpm dsh --profile headless "check lodash"
 import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
-const result = await engine.checkPackage("lodash");
+const result = await engine.checkPackage("lodash", { deep: true });
 console.log(result);
 await engine.close();
 ```
@@ -124,14 +125,19 @@ await engine.close();
 
 | 工具 | 用途 | 执行形态 |
 |---|---|---|
-| `check_package` | 检查单个包 | 前台（转发取消信号） |
-| `check_packages` | 批量检查 | 前台（内部限流） |
+| `check_package` | 检查单个包；可选 `deep` tarball 检测 | 前台（转发取消信号） |
+| `check_packages` | 批量检查；可选 `deep` 检测 | 前台（内部限流） |
 | `search_packages` | 关键词搜索注册表 | 前台 |
 | `watch_add` / `watch_remove` / `watch_list` | 监视列表管理 | 前台 |
 | `rules_list` / `rule_enable` / `rule_disable` / `rule_set_severity` | 规则管理 | 前台 |
 | `settings_get` / `settings_set` | 引擎设置 | 前台 |
-| `ci_scan` | 依赖门禁扫描 | 前台 |
+| `ci_scan` | 依赖门禁扫描；可选 `deep` 检测 | 前台 |
 | `refresh_all` | 刷新全部监视包 | 后台（`ctx.jobs.start`） |
+
+在安装前需要更高可信度时，可为 `check_package`、`check_packages` 或 `ci_scan`
+传入 `deep: true`。深度检测限制压缩包大小、解压大小、文件数和文本扫描字节数，
+拒绝跨域 tarball，并返回完整性、扫描文件数、截断状态及内容级发现。它需要下载
+包文件，因此快速的元数据扫描仍保持为默认行为。
 
 ## 架构
 

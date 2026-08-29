@@ -35,6 +35,15 @@ const mock = vi.hoisted(() => {
             category: 'install-script',
           },
         ],
+        contentScan: {
+          status: 'complete',
+          archiveBytes: 123,
+          unpackedBytes: 456,
+          filesScanned: 7,
+          filesSkipped: 1,
+          integrityVerified: true,
+          truncated: false,
+        },
         scannedAt: '2026-01-01T00:00:00.000Z',
       },
       llmScan: undefined,
@@ -165,7 +174,7 @@ describe('tool-npm-safe plugin', () => {
     const tool = capturedTools.find((t) => t.name === 'check_package')
     const signal = new AbortController().signal
     const result = await tool.execute(
-      { name: 'lodash', forceRefresh: true },
+      { name: 'lodash', forceRefresh: true, deep: true },
       { signal } as any,
     )
     expect(result).toEqual({
@@ -174,9 +183,13 @@ describe('tool-npm-safe plugin', () => {
       level: 'safe',
       score: 90,
       findingCount: 1,
+      deepScanStatus: 'complete',
+      filesScanned: 7,
+      integrityVerified: true,
     })
     expect(engine.checkPackage).toHaveBeenCalledWith('lodash', {
       forceRefresh: true,
+      deep: true,
       signal,
     })
   })
@@ -199,7 +212,7 @@ describe('tool-npm-safe plugin', () => {
     const tool = capturedTools.find((t) => t.name === 'check_packages')
     const signal = new AbortController().signal
     const result = await tool.execute(
-      { names: ['a', 'b'] },
+      { names: ['a', 'b'], deep: true },
       { signal } as any,
     )
     expect(typeof result).toBe('string')
@@ -208,6 +221,11 @@ describe('tool-npm-safe plugin', () => {
     expect(result).toContain('90/100')
     // failing entry: "b: ERROR boom"
     expect(result).toContain('b: ERROR boom')
+    expect(engine.checkPackages).toHaveBeenCalledWith(['a', 'b'], {
+      concurrency: undefined,
+      deep: true,
+      signal,
+    })
   })
 
   // (e) refresh_all background job
@@ -245,7 +263,7 @@ describe('tool-npm-safe plugin', () => {
     const tool = capturedTools.find((t) => t.name === 'ci_scan')
     const signal = new AbortController().signal
     const result = await tool.execute(
-      { failLevel: 'dangerous' },
+      { failLevel: 'dangerous', deep: true },
       { signal } as any,
     )
     expect(typeof result).toBe('string')
@@ -254,6 +272,7 @@ describe('tool-npm-safe plugin', () => {
       failLevel: 'dangerous',
       lockfile: false,
       prod: false,
+      deep: true,
       signal,
     })
   })

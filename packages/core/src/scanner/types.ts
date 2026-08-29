@@ -67,6 +67,8 @@ export interface ScanFinding {
   readonly codeSnippet?: string;
   /** Optional 1-based line number where the issue was detected. */
   readonly lineNumber?: number;
+  /** Optional archive-relative path of the file that triggered the finding. */
+  readonly filePath?: string;
   /** Optional remediation guidance. */
   readonly recommendation?: string;
   /** Category classifying the nature of this finding. */
@@ -99,6 +101,26 @@ export interface ScanRule {
   match(readme: string, packageJson?: Record<string, unknown>): ScanFinding[];
 }
 
+/** Summary of an opt-in deep scan over the published package tarball. */
+export interface ContentScanSummary {
+  /** Whether the archive was fully inspected or only partially/unsuccessfully scanned. */
+  readonly status: 'complete' | 'partial' | 'failed';
+  /** Compressed tarball size in bytes, when a download completed. */
+  readonly archiveBytes: number;
+  /** Sum of declared regular-file sizes encountered in the archive. */
+  readonly unpackedBytes: number;
+  /** Number of regular files whose contents were examined. */
+  readonly filesScanned: number;
+  /** Number of files skipped due to type or configured byte limits. */
+  readonly filesSkipped: number;
+  /** Whether an npm integrity or shasum value was present and matched. */
+  readonly integrityVerified: boolean;
+  /** Whether configured safety limits prevented a complete scan. */
+  readonly truncated: boolean;
+  /** Human-readable reason for a partial or failed scan. */
+  readonly reason?: string;
+}
+
 /**
  * Report produced by a static (non-LLM) scan of a package.
  */
@@ -113,6 +135,8 @@ export interface StaticScanReport {
   readonly score: number;
   /** Findings produced by the static scan. */
   readonly findings: readonly ScanFinding[];
+  /** Tarball content-scan details when deep scanning was requested. */
+  readonly contentScan?: ContentScanSummary;
   /** ISO 8601 timestamp of when the scan ran. */
   readonly scannedAt: string;
 }

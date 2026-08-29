@@ -72,6 +72,7 @@ export function apply(ctx: Context) {
     parameters: {
       name: { type: 'string', required: true, description: 'npm package name' },
       forceRefresh: { type: 'boolean', description: 'Ignore cache and re-fetch' },
+      deep: { type: 'boolean', description: 'Download and inspect the published tarball' },
     },
     output: {
       schema: {
@@ -87,25 +88,43 @@ export function apply(ctx: Context) {
           },
           score: { type: 'integer', required: true },
           findingCount: { type: 'integer', required: true },
+          deepScanStatus: {
+            type: 'string',
+            enum: ['complete', 'partial', 'failed'],
+          },
+          filesScanned: { type: 'integer' },
+          integrityVerified: { type: 'boolean' },
         },
       },
       render: (_args, value) => [{
         type: 'text',
         text: `${value.package}@${value.version}: ${value.level} ` +
-          `(${value.score}/100, ${value.findingCount} findings)`,
+          `(${value.score}/100, ${value.findingCount} findings)` +
+          (value.deepScanStatus
+            ? `; deep scan ${value.deepScanStatus}, ${value.filesScanned ?? 0} files, integrity ${value.integrityVerified ? 'verified' : 'unverified'}`
+            : ''),
       }],
     },
     async execute(args, exec) {
       const result = await engine.checkPackage(args.name, {
         forceRefresh: args.forceRefresh ?? false,
+        deep: args.deep ?? false,
         signal: exec.signal,
       })
+      const contentScan = result.security.staticScan?.contentScan
       return {
         package: result.packageName,
         version: result.latestVersion,
         level: result.security.overallLevel,
         score: result.security.overallScore,
         findingCount: result.security.staticScan?.findings.length ?? 0,
+        ...(contentScan
+          ? {
+              deepScanStatus: contentScan.status,
+              filesScanned: contentScan.filesScanned,
+              integrityVerified: contentScan.integrityVerified,
+            }
+          : {}),
       }
     },
   }))
@@ -125,13 +144,18 @@ export function apply(ctx: Context) {
         type: 'integer',
         description: 'Max concurrent registry requests',
       },
+      deep: { type: 'boolean', description: 'Download and inspect every published tarball' },
     },
     output: {
       schema: { type: 'string' },
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args, exec) {
-      const results = await engine.checkPackages(args.names, { concurrency: args.concurrency, signal: exec.signal })
+      const results = await engine.checkPackages(args.names, {
+        concurrency: args.concurrency,
+        deep: args.deep ?? false,
+        signal: exec.signal,
+      })
       return formatBatch(results)
     },
   }))
@@ -320,6 +344,7 @@ export function apply(ctx: Context) {
       },
       lockfile: { type: 'boolean', description: 'Scan every lockfile dependency' },
       prod: { type: 'boolean', description: 'Skip devDependencies' },
+      deep: { type: 'boolean', description: 'Download and inspect every published tarball' },
     },
     output: {
       schema: { type: 'string' },
@@ -330,6 +355,7 @@ export function apply(ctx: Context) {
         failLevel: (args.failLevel ?? 'dangerous') as SecurityLevel,
         lockfile: args.lockfile ?? false,
         prod: args.prod ?? false,
+        deep: args.deep ?? false,
         signal: exec.signal,
       })
       return formatCiReport(report)

@@ -12,12 +12,12 @@ import { DatabaseManager } from './store/database.js';
 import { CacheManager } from './store/cache-manager.js';
 import { NpmRegistryClient } from './registry/client.js';
 import { NpmRegistryError } from './registry/types.js';
-import type { PackageMetadata, PackageRepository, SearchResult } from './registry/types.js';
+import type { AbbreviatedVersion, PackageMetadata, PackageRepository, SearchResult } from './registry/types.js';
 import { TokenBucket } from './scheduler/rate-limiter.js';
 import { StaticAnalyzer, type RuleDescriptor } from './scanner/static-rules.js';
 import type { ScanRule } from './scanner/types.js';
 import { RefreshScheduler } from './scheduler/refresh-scheduler.js';
-import { SecurityLevel, Severity } from './scanner/types.js';
+import { FindingCategory, SecurityLevel, Severity } from './scanner/types.js';
 import type { StaticScanReport } from './scanner/types.js';
 import type { LlmScanReport } from './scanner/types.js';
 import { RuleConfigManager } from './scanner/rule-config.js';
@@ -28,6 +28,8 @@ import { createLlmProvider } from './llm/provider.js';
 import type { LlmProviderOptions, LlmScanProvider } from './llm/provider.js';
 import { LlmConfigManager } from './llm/llm-config.js';
 import type { LlmConfig, LlmStatus } from './llm/llm-config.js';
+import { analyzePackageTarball, CONTENT_SCAN_RULES } from './scanner/package-content.js';
+import type { PackageContentScanResult } from './scanner/package-content.js';
 
 // ============================================================================
 // Exported types
@@ -145,6 +147,9 @@ export interface CheckResult {
  * Options accepted by {@link NpmSafeEngine.checkPackage}.
  */
 export interface CheckPackageOptions {
+  /** Download and inspect the published package tarball in memory. */
+  readonly deep?: boolean;
+
   /**
    * When `true`, skip the ENTIRE cache-hit fast path (including
    * `cache.getPackage`, `cache.getSecurityReport`, and
@@ -178,6 +183,9 @@ export interface BatchCheckOptions {
    * @default 5
    */
   readonly concurrency?: number;
+
+  /** Download and inspect every package tarball. */
+  readonly deep?: boolean;
 
   /**
    * Optional external abort signal forwarded to each worker's
@@ -317,10 +325,19 @@ export class NpmSafeEngine {
       const cached = await this.cache.getPackage(name);
       if (cached !== null) {
         const latestVersion = cached['dist-tags'].latest;
-        const staticScan = await this.cache.getSecurityReport(
+        let staticScan = await this.cache.getSecurityReport(
           name,
           latestVersion,
         );
+        if (!staticScan || (options?.deep && !staticScan.contentScan)) {
+          staticScan = await this.createStaticReport(
+            cached,
+            latestVersion,
+            options?.deep ?? false,
+            options?.signal,
+          );
+          await this.cache.setSecurityReport(staticScan);
+        }
         const llmScan = this.llmProvider
           ? (await this.cache.getLlmScanReport(name, latestVersion)) ??
             await this.scanWithLlm(cached, latestVersion, options?.signal)
@@ -353,16 +370,12 @@ export class NpmSafeEngine {
       // updated even if analysis fails downstream.
       await this.cache.setPackage(meta);
 
-      // Derive a package.json-like object from the latest version manifest
-      // for the static analyzer. The spread + double-cast is needed because
-      // AbbreviatedVersion is a readonly interface, not a plain object.
-      const manifest = meta.versions[latestVersion];
-      const packageJson: Record<string, unknown> | undefined = manifest
-        ? ({ ...manifest } as unknown as Record<string, unknown>)
-        : undefined;
-
-      const readme = meta.readme ?? '';
-      const report = this.analyzer.analyze(readme, packageJson);
+      const report = await this.createStaticReport(
+        meta,
+        latestVersion,
+        options?.deep ?? false,
+        options?.signal,
+      );
 
       await this.cache.setSecurityReport(report);
       const llmScan = this.llmProvider
@@ -459,6 +472,7 @@ export class NpmSafeEngine {
         try {
           await this.limiter.consume(1);
           const result = await this.checkPackage(name, {
+            deep: options?.deep,
             signal: options?.signal,
           });
           const entry: BatchPackageResult = { name, ok: true, result };
@@ -537,6 +551,7 @@ export class NpmSafeEngine {
       }
       try {
         const result = await this.checkPackage(dep.name, {
+          deep: options?.deep,
           signal: options?.signal,
         });
         const level = result.security.overallLevel;
@@ -768,7 +783,19 @@ export class NpmSafeEngine {
    * @returns Rule descriptors in registration order.
    */
   listRules(): RuleDescriptor[] {
-    return this.analyzer.listRules();
+    const registered = this.analyzer.listRules();
+    const registeredIds = new Set(registered.map((rule) => rule.id));
+    return [
+      ...registered,
+      ...CONTENT_SCAN_RULES
+        .filter((rule) => !registeredIds.has(rule.id))
+        .map((rule) => ({
+          ...rule,
+          severity: this.ruleConfig.getSeverityOverride(rule.id) ?? rule.severity,
+          enabled: this.ruleConfig.isEnabled(rule.id, true),
+          source: 'builtin' as const,
+        })),
+    ];
   }
 
   /**
@@ -962,6 +989,73 @@ export class NpmSafeEngine {
     };
   }
 
+  /** Build a metadata-only or deep static report for one published version. */
+  private async createStaticReport(
+    meta: PackageMetadata,
+    version: string,
+    deep: boolean,
+    signal?: AbortSignal,
+  ): Promise<StaticScanReport> {
+    const manifest = meta.versions[version];
+    const packageJson: Record<string, unknown> | undefined = manifest
+      ? ({ ...manifest } as unknown as Record<string, unknown>)
+      : undefined;
+    const content = deep
+      ? await this.scanPackageContent(manifest, signal)
+      : undefined;
+    return this.analyzer.analyze(
+      meta.readme ?? '',
+      packageJson,
+      content?.findings,
+      content?.summary,
+    );
+  }
+
+  /** Download and inspect a tarball without letting ordinary failures hide metadata results. */
+  private async scanPackageContent(
+    manifest: AbbreviatedVersion | undefined,
+    signal?: AbortSignal,
+  ): Promise<PackageContentScanResult> {
+    const unavailable = (reason: string): PackageContentScanResult => ({
+      findings: [{
+        ruleId: 'content-scan-unavailable',
+        ruleName: 'Package-content scan unavailable',
+        severity: Severity.Medium,
+        message: reason,
+        recommendation: 'Treat the result as incomplete and inspect the tarball in an isolated environment.',
+        category: FindingCategory.Informational,
+      }],
+      summary: {
+        status: 'failed',
+        archiveBytes: 0,
+        unpackedBytes: 0,
+        filesScanned: 0,
+        filesSkipped: 0,
+        integrityVerified: false,
+        truncated: false,
+        reason,
+      },
+    });
+
+    if (!manifest?.dist?.tarball) {
+      return unavailable('The registry metadata does not provide a package tarball URL.');
+    }
+    try {
+      const archive = await this.client.downloadTarball(manifest.dist.tarball, {
+        signal,
+      });
+      return analyzePackageTarball(archive, {
+        integrity: manifest.dist.integrity ?? manifest.integrity,
+        shasum: manifest.dist.shasum ?? manifest.shasum,
+      });
+    } catch {
+      if (signal?.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
+      return unavailable('The tarball download failed or was refused by the deep-scan safety policy.');
+    }
+  }
+
   private async scanWithLlm(
     meta: PackageMetadata,
     version: string,
@@ -1048,6 +1142,19 @@ export type { RuleConfig, RuleConfigFile, RuleOptions } from './scanner/rule-con
 export { loadRulesFromDirectory } from './scanner/rule-loader.js';
 export type { LoadedRuleFile, RuleModuleExport } from './scanner/rule-loader.js';
 export type { RuleDescriptor } from './scanner/static-rules.js';
+export {
+  analyzePackageTarball,
+  DEFAULT_MAX_ARCHIVE_ENTRIES,
+  DEFAULT_MAX_FILE_BYTES,
+  DEFAULT_MAX_SCANNED_BYTES,
+  DEFAULT_MAX_UNPACKED_BYTES,
+  CONTENT_SCAN_RULES,
+} from './scanner/package-content.js';
+export type {
+  PackageContentScanOptions,
+  PackageContentScanResult,
+} from './scanner/package-content.js';
+export type { ContentScanSummary, ScanFinding, StaticScanReport } from './scanner/types.js';
 export { DatabaseManager } from './store/database.js';
 export { CacheManager, DEFAULT_CACHE_TTL_MS, MAX_CHECK_HISTORY } from './store/cache-manager.js';
 export type { CacheManagerOptions } from './store/cache-manager.js';

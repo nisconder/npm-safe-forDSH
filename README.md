@@ -18,7 +18,9 @@
 `npm-safe-forDSH` re-architects the local-first npm supply-chain security engine
 **`@npm-safe/core`** as a **DeepSeek Harness (dsh) tool plugin**. AI agents can
 call package security scans directly inside a conversation, acting as a
-"check before you install" gate. The engine's full capability — checking,
+"check before you install" gate. Optional deep scans download the published
+tarball, verify its integrity, and inspect bounded source content entirely in
+memory. The engine's full capability — checking,
 search, watchlist, refresh, rules, settings, and CI gate scans — is mapped to
 **14 dsh tools**, including a background `refresh_all` job.
 
@@ -118,7 +120,7 @@ stay aligned across the whole repo.
 import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
-const result = await engine.checkPackage("lodash");
+const result = await engine.checkPackage("lodash", { deep: true });
 console.log(result);
 await engine.close();
 ```
@@ -131,14 +133,20 @@ dsh session:
 
 | Tool | Purpose | Execution |
 |---|---|---|
-| `check_package` | Check a single package | Foreground (signal-forwarded) |
-| `check_packages` | Check many packages | Foreground (rate-limited) |
+| `check_package` | Check one package; optional `deep` tarball inspection | Foreground (signal-forwarded) |
+| `check_packages` | Check many packages; optional `deep` inspection | Foreground (rate-limited) |
 | `search_packages` | Keyword search of the registry | Foreground |
 | `watch_add` / `watch_remove` / `watch_list` | Watchlist management | Foreground |
 | `rules_list` / `rule_enable` / `rule_disable` / `rule_set_severity` | Rule management | Foreground |
 | `settings_get` / `settings_set` | Engine settings | Foreground |
-| `ci_scan` | Dependency gate scan | Foreground |
+| `ci_scan` | Dependency gate scan; optional `deep` inspection | Foreground |
 | `refresh_all` | Refresh the watchlist | Background (`ctx.jobs.start`) |
+
+Set `deep: true` on `check_package`, `check_packages`, or `ci_scan` when the
+agent needs higher assurance before installation. Deep scans enforce archive,
+file-count, decompression, and text-byte limits; reject cross-origin tarballs;
+and report integrity, files scanned, truncation, and content findings. Because
+they download package archives, keep metadata-only scans as the fast default.
 
 ## Architecture
 
