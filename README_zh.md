@@ -27,7 +27,7 @@
 ## 30 秒安装
 
 ```bash
-dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe
+dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe --allow-build=better-sqlite3
 dsh --profile tui
 ```
 
@@ -44,8 +44,9 @@ dsh --profile tui
 ```
 
 插件已声明为原生 DSH bundle，因此官方 `dsh plugin` 命令会同时安装包并启用
-`cordis.patch.yml` 层。请先在 DSH 中配置你选择的模型提供方；只有选择 DeepSeek
-作为提供方时才需要 DeepSeek API Key。
+`cordis.patch.yml` 层。`--allow-build=better-sqlite3` 只允许本地缓存所用的 SQLite
+驱动执行构建脚本，pnpm 仍会拦截其他依赖的安装脚本。请先在 DSH 中配置你选择的
+模型提供方；只有选择 DeepSeek 作为提供方时才需要 DeepSeek API Key。
 
 ## 能检测什么
 

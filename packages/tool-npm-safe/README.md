@@ -12,12 +12,15 @@ If this plugin is useful in your workflow, please [Star the repository](https://
 ## Installation
 
 ```bash
-dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe
+dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe --allow-build=better-sqlite3
 dsh --profile tui
 ```
 
 The package declares a DSH bundle and activates `cordis.patch.yml`
-automatically. Restart an already-running profile after installation.
+automatically. The `--allow-build` flag grants install-script permission only
+to the SQLite driver used for the local cache; pnpm continues blocking build
+scripts from other dependencies. Restart an already-running profile after
+installation.
 
 ### Peer Dependencies
 

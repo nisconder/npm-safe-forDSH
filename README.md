@@ -28,7 +28,7 @@ conversation.
 ## 30-second install
 
 ```bash
-dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe
+dsh plugin --profile tui add @npm-safe/dsh-tool-npm-safe --allow-build=better-sqlite3
 dsh --profile tui
 ```
 
@@ -45,9 +45,12 @@ Use check_package to check lodash.
 ```
 
 The plugin is declared as a native DSH bundle, so the official `dsh plugin`
-command installs the package and activates its `cordis.patch.yml` layer. Your
-selected DSH model provider must already be configured; a DeepSeek API key is
-only required when DeepSeek is the selected provider.
+command installs the package and activates its `cordis.patch.yml` layer.
+`--allow-build=better-sqlite3` grants build permission only to the SQLite
+driver used for the local cache; pnpm continues to block install scripts from
+other dependencies. Your selected DSH model provider must already be
+configured; a DeepSeek API key is only required when DeepSeek is the selected
+provider.
 
 ## What it catches
 
