@@ -211,6 +211,15 @@ describe("CacheManager", () => {
         overallLevel: SecurityLevel.Safe,
         score: 100,
         findings: [],
+        contentScan: {
+          status: "complete",
+          archiveBytes: 1_024,
+          unpackedBytes: 4_096,
+          filesScanned: 3,
+          filesSkipped: 1,
+          integrityVerified: true,
+          truncated: false,
+        },
         scannedAt: new Date().toISOString(),
       };
       await cache.setSecurityReport(report);
@@ -220,6 +229,7 @@ describe("CacheManager", () => {
       expect(result!.score).toBe(100);
       expect(result!.overallLevel).toBe(SecurityLevel.Safe);
       expect(result!.findings.length).toBe(0);
+      expect(result!.contentScan).toEqual(report.contentScan);
     });
 
     it("reconstructs SecurityLevel from score on read", async () => {

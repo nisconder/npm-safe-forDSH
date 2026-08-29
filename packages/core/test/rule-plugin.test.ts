@@ -120,7 +120,12 @@ describe("NpmSafeEngine rule API", () => {
     });
 
     const builtin = engine.listRules().filter((r) => r.source === "builtin");
-    expect(builtin.length).toBe(10);
+    expect(builtin.map((rule) => rule.id)).toEqual(expect.arrayContaining([
+      "install-script",
+      "content-integrity-mismatch",
+      "content-remote-shell",
+      "content-scan-unavailable",
+    ]));
 
     engine.registerRule({
       id: "engine-custom",

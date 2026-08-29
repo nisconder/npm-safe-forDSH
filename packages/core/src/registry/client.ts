@@ -50,6 +50,9 @@ const DEFAULT_USER_AGENT = '@npm-safe/core (https://npmjs.org)';
  */
 const REQUEST_TIMEOUT_MS = 10_000;
 
+/** Default compressed tarball limit for a deep package-content scan. */
+export const DEFAULT_MAX_TARBALL_BYTES = 20 * 1024 * 1024;
+
 /**
  * Number of attempts made before giving up. The first attempt plus
  * {@link RETRY_BACKOFF_MS}.length - 1 retries equals this value.
@@ -135,6 +138,62 @@ interface SearchResponse {
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** A non-retryable download refusal caused by a local safety policy. */
+class RegistryPolicyError extends NpmRegistryError {}
+
+interface RegistryRequestOptions<T> {
+  readonly signal?: AbortSignal;
+  readonly parse?: (response: Response) => Promise<T>;
+  readonly accept?: string;
+  readonly acceptEncoding?: string;
+  readonly redirect?: RequestRedirect;
+}
+
+/** Read a response body without ever buffering more than `maxBytes`. */
+async function readLimitedBody(response: Response, maxBytes: number): Promise<Buffer> {
+  const rawLength = response.headers.get('content-length');
+  if (rawLength) {
+    const declared = Number(rawLength);
+    if (Number.isFinite(declared) && declared > maxBytes) {
+      throw new RegistryPolicyError(
+        `Tarball declares ${declared} bytes, above the ${maxBytes}-byte download limit.`,
+      );
+    }
+  }
+
+  if (!response.body) {
+    const body = Buffer.from(await response.arrayBuffer());
+    if (body.length > maxBytes) {
+      throw new RegistryPolicyError(
+        `Tarball exceeds the ${maxBytes}-byte download limit.`,
+      );
+    }
+    return body;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new RegistryPolicyError(
+          `Tarball exceeds the ${maxBytes}-byte download limit.`,
+        );
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), total);
 }
 
 /**
@@ -290,7 +349,9 @@ export class NpmRegistryClient {
     const url = `${this.baseUrl}/-/v1/search?text=${encodeURIComponent(
       query,
     )}&size=${encodeURIComponent(String(size))}`;
-    const body = await this.request<SearchResponse>(url, options);
+    const body = await this.request<SearchResponse>(url, {
+      signal: options?.signal,
+    });
     // Normalise the raw response into the public SearchResult shape. The
     // registry omits `searchScore` on some responses, so default to the
     // final score when absent.
@@ -299,6 +360,41 @@ export class NpmRegistryClient {
       score: hit.score,
       searchScore: hit.searchScore ?? hit.score.final,
     }));
+  }
+
+  /** Download a same-origin package tarball through a bounded binary reader. */
+  async downloadTarball(
+    tarballUrl: string,
+    options?: {
+      readonly maxBytes?: number;
+      readonly signal?: AbortSignal;
+    },
+  ): Promise<Buffer> {
+    let target: URL;
+    let registry: URL;
+    try {
+      target = new URL(tarballUrl);
+      registry = new URL(this.baseUrl);
+    } catch {
+      throw new RegistryPolicyError('Tarball URL is invalid.');
+    }
+    if (target.origin !== registry.origin) {
+      throw new RegistryPolicyError(
+        `Tarball origin ${target.origin} does not match registry origin ${registry.origin}.`,
+      );
+    }
+    if (target.protocol !== 'https:' && registry.protocol !== 'http:') {
+      throw new RegistryPolicyError('Tarball download requires HTTPS.');
+    }
+
+    const maxBytes = options?.maxBytes ?? DEFAULT_MAX_TARBALL_BYTES;
+    return this.request<Buffer>(target.href, {
+      signal: options?.signal,
+      parse: (response) => readLimitedBody(response, maxBytes),
+      accept: 'application/octet-stream',
+      acceptEncoding: 'identity',
+      redirect: 'error',
+    });
   }
 
   /**
@@ -334,7 +430,7 @@ export class NpmRegistryClient {
    */
   private async request<T>(
     url: string,
-    options?: { readonly signal?: AbortSignal },
+    options?: RegistryRequestOptions<T>,
   ): Promise<T> {
     let lastError: unknown = null;
 
@@ -368,11 +464,12 @@ export class NpmRegistryClient {
         const init: RequestInit = {
           method: 'GET',
           headers: {
-            Accept: 'application/json',
-            'Accept-Encoding': 'gzip, deflate',
+            Accept: options?.accept ?? 'application/json',
+            'Accept-Encoding': options?.acceptEncoding ?? 'gzip, deflate',
             'User-Agent': this.userAgent,
           },
           signal: combinedSignal,
+          redirect: options?.redirect ?? 'follow',
         };
         if (dispatcher) {
           // undici's fetch accepts a `dispatcher` option to route the request
@@ -395,8 +492,11 @@ export class NpmRegistryClient {
           continue;
         }
 
-        return (await response.json()) as T;
+        return options?.parse
+          ? await options.parse(response)
+          : (await response.json()) as T;
       } catch (error) {
+        if (error instanceof RegistryPolicyError) throw error;
         // An abort triggered by the EXTERNAL signal must break the retry
         // loop and propagate as AbortError — it is never a retryable
         // timeout. This is the cooperative-cancellation contract.

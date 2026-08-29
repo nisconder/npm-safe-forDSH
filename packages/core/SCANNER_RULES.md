@@ -1,12 +1,13 @@
 # Scanner Rules Reference
 
 This document describes every built-in static analysis rule implemented in
-`@npm-safe/core`. The static analyzer runs pure regex and string analysis
+`@npm-safe/core-dsh`. The metadata analyzer runs pure regex and string analysis
 against a package's README and `package.json`. It makes no network calls and
 uses no LLM inference.
 
-All 10 rules are defined in `src/scanner/static-rules.ts` and exported via the
-`BUILTIN_RULES` constant in registration order.
+Ten metadata rules are defined in `src/scanner/static-rules.ts`. Twelve
+additional opt-in rules inspect the published tarball through the bounded,
+in-memory scanner in `src/scanner/package-content.ts`.
 
 ---
 
@@ -55,6 +56,30 @@ package.
 | 9 | `homograph-attack` | `homograph-attack` | Critical | `packageJson.name` | Non-ASCII characters in the unscoped portion of the package name; allowed character set is `[a-z0-9._-]` |
 | 10 | `registry-mismatch` | `registry-mismatch` | Medium | `publishConfig.registry` | Does not match or start with `https://registry.npmjs.org/` |
 
+### Deep package-content rules
+
+These rules run only when `deep: true` is passed to `checkPackage`,
+`checkPackages`, or `ciScan`.
+
+| Rule ID | Default severity | Detects |
+|---|---:|---|
+| `content-integrity-mismatch` | Critical | Tarball bytes do not match npm integrity metadata |
+| `content-archive-invalid` | High | Invalid, truncated, or unsafe archive structure |
+| `content-archive-path` | Critical | Archive paths escaping the package root |
+| `content-archive-link` | High | Symbolic or hard links escaping the package root |
+| `content-native-binary` | Low | Bundled native, executable, or WebAssembly files |
+| `content-remote-shell` | Critical | Remote content piped into a command shell |
+| `content-obfuscated-exec` | High | Encoded payloads combined with dynamic execution |
+| `content-network-exec` | High | Networking and process execution in one source file |
+| `content-process-exec` | Medium | Runtime child-process capability |
+| `content-sensitive-network` | High | Sensitive environment access combined with networking |
+| `content-scan-incomplete` | Medium | Safety limits prevented a complete scan |
+| `content-scan-unavailable` | Medium | Tarball download or inspection was unavailable |
+
+The scanner never extracts archives to disk. It enforces compressed and
+uncompressed byte limits, entry and per-file limits, rejects cross-origin
+tarballs, and caches the resulting `ContentScanSummary` with the static report.
+
 ---
 
 ## StaticAnalyzer Class
@@ -62,7 +87,12 @@ package.
 ```typescript
 class StaticAnalyzer {
   constructor(rules?: ScanRule[]);
-  analyze(readme: string, packageJson?: Record<string, unknown>): StaticScanReport;
+  analyze(
+    readme: string,
+    packageJson?: Record<string, unknown>,
+    supplementalFindings?: readonly ScanFinding[],
+    contentScan?: ContentScanSummary,
+  ): StaticScanReport;
 }
 ```
 
@@ -558,6 +588,7 @@ interface ScanFinding {
   readonly message: string;
   readonly codeSnippet?: string;
   readonly lineNumber?: number;
+  readonly filePath?: string;
   readonly recommendation?: string;
   readonly category: FindingCategory;
 }
@@ -568,6 +599,6 @@ interface ScanFinding {
 ## Source Reference
 
 All types, enums, and interfaces are defined in `src/scanner/types.ts`. All
-rule implementations, regex patterns, and the `StaticAnalyzer` class are in
-`src/scanner/static-rules.ts`. The `BUILTIN_RULES` array is exported from
-`src/scanner/static-rules.ts` at line 650.
+metadata-rule implementations and the `StaticAnalyzer` class are in
+`src/scanner/static-rules.ts`. Deep archive inspection and its public rule
+descriptors live in `src/scanner/package-content.ts`.

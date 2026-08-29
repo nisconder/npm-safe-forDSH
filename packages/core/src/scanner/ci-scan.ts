@@ -75,6 +75,8 @@ export interface CiScanOptions {
   readonly lockfile?: boolean;
   /** Only scan `dependencies` (skip devDependencies). */
   readonly prod?: boolean;
+  /** Download and inspect every dependency tarball. */
+  readonly deep?: boolean;
   /** Optional external abort signal for cooperative cancellation. */
   readonly signal?: AbortSignal;
 }

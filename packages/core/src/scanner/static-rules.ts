@@ -7,6 +7,7 @@
  */
 
 import {
+  ContentScanSummary,
   FindingCategory,
   ScanFinding,
   ScanRule,
@@ -765,6 +766,8 @@ export class StaticAnalyzer {
   analyze(
     readme: string,
     packageJson?: Record<string, unknown>,
+    supplementalFindings: readonly ScanFinding[] = [],
+    contentScan?: ContentScanSummary,
   ): StaticScanReport {
     const findings: ScanFinding[] = [];
     for (const rule of this.rules.values()) {
@@ -779,6 +782,17 @@ export class StaticAnalyzer {
             : f,
         );
       }
+    }
+
+    for (const finding of supplementalFindings) {
+      const enabled = this.config?.isEnabled(finding.ruleId, true) ?? true;
+      if (!enabled) continue;
+      const severity = this.config?.getSeverityOverride(finding.ruleId);
+      findings.push(
+        severity && severity !== finding.severity
+          ? { ...finding, severity }
+          : finding,
+      );
     }
 
     let score = MAX_SCORE;
@@ -800,6 +814,7 @@ export class StaticAnalyzer {
       overallLevel,
       score,
       findings,
+      contentScan,
       scannedAt: new Date().toISOString(),
     };
   }
