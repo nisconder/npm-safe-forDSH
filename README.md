@@ -2,7 +2,7 @@
 
 # npm-safe for DeepSeek Harness
 
-**Stop AI agents before they install a risky npm package.**
+**Give AI agents evidence before they choose an npm package.**
 
 [![npm](https://img.shields.io/npm/v/@npm-safe/dsh-tool-npm-safe?logo=npm&color=CB3837)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
 [![downloads](https://img.shields.io/npm/dm/@npm-safe/dsh-tool-npm-safe?logo=npm)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
@@ -16,11 +16,18 @@
 
 </div>
 
-`npm-safe-forDSH` is a supply-chain security gate for
+`npm-safe-forDSH` provides supply-chain security checking tools for
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It lets an
 agent inspect npm package metadata and published tarballs **before** an install,
 then returns evidence, a risk level, and an explainable score inside the same
 conversation.
+
+The plugin registers tools that an agent can choose to call. It does not
+intercept shell commands or automatically block every `npm`, `pnpm`, `yarn`,
+or DSH plugin installation. Configure your agent workflow to require a check
+of the exact version before installing; enforce a mandatory install policy
+in your host or CI separately. A `ci_scan` failure is a tool result that its
+caller must act on.
 
 > If this makes your agent workflow safer, please **Star the repository**. It
 > helps other DSH users find an independent security tool.
@@ -90,7 +97,7 @@ findings: 1 low, 0 medium, 0 high, 0 critical
 
 | Tool | Purpose |
 |---|---|
-| `check_package` | Check one package, optionally with `deep: true` |
+| `check_package` | Check one package, with optional `version`, `forceRefresh`, and `deep` |
 | `check_packages` | Rate-limited batch checking |
 | `search_packages` | Search the npm registry |
 | `watch_add` / `watch_remove` / `watch_list` | Manage a persistent watchlist |
@@ -121,8 +128,8 @@ pnpm add @npm-safe/core-dsh
 import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
-const report = await engine.checkPackage("lodash", { deep: true });
-console.log(report.level, report.score, report.findings);
+const report = await engine.checkPackage("lodash", { version: "4.17.21", deep: true });
+console.log(report.latestVersion, report.security.overallLevel, report.security.overallScore);
 await engine.close();
 ```
 
@@ -140,6 +147,13 @@ pnpm run build
 pnpm run typecheck
 pnpm run test
 ```
+
+The repository pins a release tarball of `@npm-safe/core@1.1.2` under `vendor/`
+through a workspace override. The scanner source is maintained only in
+[`nisconder/npm-safe`](https://github.com/nisconder/npm-safe). `packages/core`
+is a small compatibility facade, with no copied scanner, database, or registry
+implementation. See [updating the shared core](vendor/README.md) for the
+reproducible `--core-tarball` workflow and the release order.
 
 Live registry smoke tests:
 
@@ -161,7 +175,7 @@ while DeepSeek Harness is in developer preview.
 - [Scanner rules](packages/core/SCANNER_RULES.md)
 - [Contributing](CONTRIBUTING.md)
 
-This project adapts the engine from
+This project depends on the shared engine from
 [`nisconder/npm-safe`](https://github.com/nisconder/npm-safe) for DeepSeek
 Harness. It is an independent community project and is not affiliated with or
 endorsed by DeepSeek.

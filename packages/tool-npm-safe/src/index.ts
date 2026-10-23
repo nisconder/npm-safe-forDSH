@@ -71,6 +71,7 @@ export function apply(ctx: Context) {
     description: 'Check an npm package for supply-chain security risks.',
     parameters: {
       name: { type: 'string', required: true, description: 'npm package name' },
+      version: { type: 'string', description: 'Exact version, dist-tag or semver range (defaults to latest)' },
       forceRefresh: { type: 'boolean', description: 'Ignore cache and re-fetch' },
       deep: { type: 'boolean', description: 'Download and inspect the published tarball' },
     },
@@ -107,6 +108,7 @@ export function apply(ctx: Context) {
     },
     async execute(args, exec) {
       const result = await engine.checkPackage(args.name, {
+        version: args.version,
         forceRefresh: args.forceRefresh ?? false,
         deep: args.deep ?? false,
         signal: exec.signal,

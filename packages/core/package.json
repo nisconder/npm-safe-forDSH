@@ -1,7 +1,7 @@
 {
   "name": "@npm-safe/core-dsh",
-  "version": "1.0.6",
-  "description": "Local-first npm supply-chain security engine with metadata and deep tarball scanning",
+  "version": "1.0.7",
+  "description": "Thin DeepSeek Harness compatibility facade for the shared @npm-safe/core scanner",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,9 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "npm-security",
     "supply-chain-security",
@@ -34,11 +36,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "better-sqlite3": "^12.11.1",
-    "undici": "^8.10.0"
+    "@npm-safe/core": "1.1.2"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.0.0"

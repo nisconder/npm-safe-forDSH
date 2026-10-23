@@ -5,7 +5,12 @@
 ![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
 [![Node](https://img.shields.io/badge/Node.js-22.19%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 
-A [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness) tool plugin that exposes the [`@npm-safe/core-dsh`](https://www.npmjs.com/package/@npm-safe/core-dsh) supply-chain security engine as 14 dsh tools. AI agents can call package security scans directly inside a conversation, acting as a "check before you install" gate.
+A [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness) plugin exposing the shared [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) scanner through a small compatibility facade and 14 tools.
+
+Agents can call these tools before an installation decision. The plugin does
+not intercept shell commands or enforce a mandatory block on npm, pnpm, yarn,
+or DSH plugin installation. Your agent or host must require exact-version
+checks and act on failed scan results.
 
 If this plugin is useful in your workflow, please [Star the repository](https://github.com/nisconder/npm-safe-forDSH) so other DSH users can find it.
 
@@ -51,7 +56,7 @@ The plugin registers the following 14 tools in a dsh session:
 
 | Tool | Purpose | Execution |
 |---|---|---|
-| `check_package` | Check one package; optional `deep` tarball inspection | Foreground (signal-forwarded) |
+| `check_package` | Check one package; optional `version`, `forceRefresh`, and `deep` | Foreground (signal-forwarded) |
 | `check_packages` | Check multiple packages; optional `deep` inspection | Foreground (rate-limited) |
 | `search_packages` | Keyword search of the npm registry | Foreground |
 | `watch_add` | Add a package to the watchlist | Foreground |
@@ -106,7 +111,7 @@ axios: safe (90/100, 1 findings)
 dir: /project
 dependencies: 142
 fail level: dangerous
-failed: false
+failed: true
 safe: 130
 suspicious: 10
 dangerous: 2
@@ -122,7 +127,11 @@ Background refresh job started: job-abc123
 
 ## Engine
 
-This plugin is powered by [`@npm-safe/core-dsh`](https://www.npmjs.com/package/@npm-safe/core-dsh), a fork of [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) re-architected for dsh integration. The engine provides:
+This plugin uses [`@npm-safe/core-dsh`](https://www.npmjs.com/package/@npm-safe/core-dsh)
+as a thin facade over [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core).
+The shared engine owns version selection, scanning, cache validity, lockfile
+traversal, failure policy, and cancellation. The facade only preserves the
+DSH search options form and formats CI reports. The engine provides:
 
 - **10 metadata rules plus 12 deep-content rules** for archive integrity, unsafe paths, remote shell execution, obfuscation, process execution, secrets, and binaries
 - **SQLite-backed caching** with TTL-based staleness (default 1 hour)

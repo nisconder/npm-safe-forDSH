@@ -41,6 +41,13 @@ jobs:
       - name: Run tests
         run: pnpm run test
 
+      - name: Require the shared core release before publishing the adapters
+        shell: bash
+        run: |
+          set -euo pipefail
+          core_version=$(node -p "require('./packages/core/package.json').dependencies['@npm-safe/core']")
+          npm view "@npm-safe/core@${core_version}" version
+
       - name: Publish unpublished package versions
         shell: bash
         run: |

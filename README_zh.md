@@ -2,7 +2,7 @@
 
 # npm-safe for DeepSeek Harness
 
-**在 AI 智能体安装危险 npm 包之前拦住它。**
+**让 AI 智能体在选择 npm 包之前获得安全检查证据。**
 
 [![npm](https://img.shields.io/npm/v/@npm-safe/dsh-tool-npm-safe?logo=npm&color=CB3837)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
 [![downloads](https://img.shields.io/npm/dm/@npm-safe/dsh-tool-npm-safe?logo=npm)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
@@ -18,8 +18,12 @@
 
 `npm-safe-forDSH` 是面向
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 npm
-供应链安全门禁。它让智能体在安装之前检查包元数据和已发布 tarball，并在同一段
+供应链安全检查工具。它让智能体在安装之前检查包元数据和已发布 tarball，并在同一段
 会话里返回证据、风险等级和可解释评分。
+
+插件提供智能体可调用的检查工具，不会统一拦截 shell 命令，也不会自动阻止
+所有 npm、pnpm、yarn 或 DSH 插件安装。请在智能体工作流中要求先检查将要安装的
+精确版本，并由宿主或 CI 强制执行安装策略。`ci_scan` 的失败结果需要调用方处理。
 
 > 如果它让你的智能体工作流更安全，请为仓库点一个 **Star**。这会帮助其他 DSH
 > 用户发现这个独立安全工具。
@@ -112,8 +116,8 @@ pnpm add @npm-safe/core-dsh
 import { NpmSafeEngine } from "@npm-safe/core-dsh";
 
 const engine = new NpmSafeEngine();
-const report = await engine.checkPackage("lodash", { deep: true });
-console.log(report.level, report.score, report.findings);
+const report = await engine.checkPackage("lodash", { version: "4.17.21", deep: true });
+console.log(report.latestVersion, report.security.overallLevel, report.security.overallScore);
 await engine.close();
 ```
 
@@ -143,6 +147,11 @@ node scripts/smoke-facade.mjs
 [`@npm-safe/dsh-tool-npm-safe`](packages/tool-npm-safe) bundle。DSH peer 包与
 `0.1.0-rc.6` 版本族对齐；DeepSeek Harness 仍处于开发者预览阶段，升级时必须保持
 全仓版本一致。
+
+扫描器源码只在主仓库维护；这里的 `packages/core` 是兼容薄层，不再复制扫描、
+缓存或注册表实现。开发工作区通过 `vendor/` 的发行 tarball 固定共享核心的确切
+内容。更新核心并验证适配器的方法见[共享核心工作流](vendor/README.md)，脚本支持
+`--core-tarball` 和 `--verify`。
 
 ## 文档
 

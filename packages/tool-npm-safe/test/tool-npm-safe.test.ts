@@ -115,6 +115,7 @@ import { apply } from '../src/index.js'
 function createStubContext() {
   const capturedTools: any[] = []
   const capturedJobSpecs: any[] = []
+  const capturedCleanups: Array<() => void> = []
 
   const ctx: any = {
     tools: {
@@ -131,11 +132,12 @@ function createStubContext() {
     },
     effect(fn: () => () => void) {
       const cleanup = fn()
+      capturedCleanups.push(cleanup)
       return () => cleanup()
     },
   }
 
-  return { ctx, capturedTools, capturedJobSpecs }
+  return { ctx, capturedTools, capturedJobSpecs, capturedCleanups }
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +147,7 @@ describe('tool-npm-safe plugin', () => {
   let capturedTools: any[]
   let capturedJobSpecs: any[]
   let engine: any
+  let capturedCleanups: Array<() => void>
 
   beforeEach(() => {
     mock.instances.length = 0
@@ -152,6 +155,7 @@ describe('tool-npm-safe plugin', () => {
     apply(stub.ctx)
     capturedTools = stub.capturedTools
     capturedJobSpecs = stub.capturedJobSpecs
+    capturedCleanups = stub.capturedCleanups
     engine = mock.instances[0]
   })
 
@@ -174,7 +178,7 @@ describe('tool-npm-safe plugin', () => {
     const tool = capturedTools.find((t) => t.name === 'check_package')
     const signal = new AbortController().signal
     const result = await tool.execute(
-      { name: 'lodash', forceRefresh: true, deep: true },
+      { name: 'lodash', version: '4.17.21', forceRefresh: true, deep: true },
       { signal } as any,
     )
     expect(result).toEqual({
@@ -188,10 +192,16 @@ describe('tool-npm-safe plugin', () => {
       integrityVerified: true,
     })
     expect(engine.checkPackage).toHaveBeenCalledWith('lodash', {
+      version: '4.17.21',
       forceRefresh: true,
       deep: true,
       signal,
     })
+  })
+
+  it('exposes version selection in the tool schema', () => {
+    const tool = capturedTools.find((t) => t.name === 'check_package')
+    expect(tool.parameters.properties.version.type).toBe('string')
   })
 
   // (c) check_package render
@@ -249,6 +259,25 @@ describe('tool-npm-safe plugin', () => {
     const outcome = await hooks.done
     expect(outcome.status).toBe('completed')
     expect(engine.refreshAll).toHaveBeenCalled()
+  })
+
+  it('refresh_all propagates background job cancellation to the shared engine signal', async () => {
+    engine.refreshAll.mockImplementation(({ signal }: { signal: AbortSignal }) =>
+      new Promise((_resolve, reject) => signal.addEventListener('abort', () => {
+        reject(new DOMException('Cancelled', 'AbortError'))
+      }, { once: true })),
+    )
+    const tool = capturedTools.find((t) => t.name === 'refresh_all')
+    await tool.execute({}, { agent: { id: 'agent' } })
+    const hooks = capturedJobSpecs[0].run()
+    hooks.cancel('user cancelled')
+    expect(await hooks.done).toEqual({ status: 'killed', detail: 'Cancelled' })
+    expect(engine.refreshAll.mock.calls[0][0].signal.aborted).toBe(true)
+  })
+
+  it('closes the shared engine when Cordis unloads the plugin', () => {
+    for (const cleanup of capturedCleanups) cleanup()
+    expect(engine.close).toHaveBeenCalledOnce()
   })
 
   // (f) settings_get renders null as unset

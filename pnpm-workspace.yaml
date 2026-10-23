@@ -1,8 +1,7 @@
 packages:
   - packages/*
+overrides:
+  '@npm-safe/core': file:vendor/npm-safe-core-1.1.2.tgz
 allowBuilds:
   better-sqlite3: true
   esbuild: true
-pnpm:
-  onlyBuiltDependencies:
-    - better-sqlite3
