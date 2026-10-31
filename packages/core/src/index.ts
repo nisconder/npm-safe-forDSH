@@ -9,6 +9,7 @@ import {
   readProjectDependencies,
   shouldFailCi,
 } from '@npm-safe/core'
+import type { ScanFinding } from '@npm-safe/core'
 type SearchResult = Awaited<ReturnType<SharedNpmSafeEngine['searchPackages']>>[number]
 
 export * from '@npm-safe/core'
@@ -42,6 +43,8 @@ export interface PackageResult {
   readonly findingCount: number
   readonly deepScanStatus?: 'complete' | 'partial' | 'failed'
   readonly error?: string
+  readonly failed?: boolean
+  readonly findings?: readonly ScanFinding[]
 }
 
 export interface CiReport {
@@ -102,6 +105,12 @@ export class NpmSafeEngine extends SharedNpmSafeEngine {
           ...(result.security.llmScan?.enabled ? result.security.llmScan.findings ?? [] : []),
         ]
         const deepScanStatus = result.security.staticScan?.contentScan?.status
+        const deepIncomplete = options.deep === true && deepScanStatus !== 'complete'
+        const packageFailed = !result.exists
+          || shouldFailCi(result.security.overallLevel, failLevel, findings)
+          || deepIncomplete
+        if (deepIncomplete) summary.deepIncomplete++
+        failed ||= packageFailed
         packages.push({
           name: dep.name,
           exists: result.exists,
@@ -110,15 +119,10 @@ export class NpmSafeEngine extends SharedNpmSafeEngine {
           score: result.security.overallScore,
           findingCount: findings.length,
           ...(deepScanStatus ? { deepScanStatus } : {}),
+          failed: packageFailed,
+          findings,
         })
         summary[result.security.overallLevel]++
-        failed ||= !result.exists || shouldFailCi(
-          result.security.overallLevel, failLevel, findings,
-        )
-        if (options.deep && deepScanStatus !== 'complete') {
-          summary.deepIncomplete++
-          failed = true
-        }
         if (result.exists) await this.recordCheckHistory(result)
       } catch (error) {
         throwIfAborted(options.signal)
@@ -130,6 +134,7 @@ export class NpmSafeEngine extends SharedNpmSafeEngine {
           score: 0,
           findingCount: 0,
           error: error instanceof Error ? error.message : String(error),
+          failed: true,
         })
         summary.errors++
         failed = true

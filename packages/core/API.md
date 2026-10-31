@@ -21,7 +21,7 @@ engine.ciScan({
 The positional shared-core search API remains accepted. `ciScan()` returns
 `{ dir, scannedAt, dependencyCount, failLevel, failed, summary, packages }`.
 Each package entry includes the checked version, level, score, finding count,
-and any error. Lockfile scans retain each distinct name/version pair and
+a `failed` flag, the findings behind that result, and any error. Lockfile scans retain each distinct name/version pair and
 production scans retain its transitive dependency graph. Critical findings,
 unknown assessments, missing packages, and scan errors fail the default gate.
 

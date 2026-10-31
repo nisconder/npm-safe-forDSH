@@ -48,7 +48,8 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.0.5",
     "@deepseek-ai/dsh-jobs-local": "^0.2.1-rc.5",
-    "@deepseek-ai/dsh-tools": "^0.2.1-rc.5"
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.5",
+    "@deepseek-ai/dsh-working-directory": "^0.2.1-rc.5"
   },
   "dependencies": {
     "@npm-safe/core-dsh": "workspace:^"
@@ -59,6 +60,7 @@
     "@deepseek-ai/dsh-jobs": "0.2.1-rc.5",
     "@deepseek-ai/dsh-jobs-local": "0.2.1-rc.5",
     "@deepseek-ai/dsh-tools": "0.2.1-rc.5",
+    "@deepseek-ai/dsh-working-directory": "0.2.1-rc.5",
     "@types/node": "^24.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.0.0"
