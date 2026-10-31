@@ -8,7 +8,7 @@
 [![downloads](https://img.shields.io/npm/dm/@npm-safe/dsh-tool-npm-safe?logo=npm)](https://www.npmjs.com/package/@npm-safe/dsh-tool-npm-safe)
 [![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](LICENSE)
-[![Node](https://img.shields.io/badge/Node.js-22.19%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/Node.js-24.9%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 
 **14 agent tools · 22 security checks · integrity-verified deep scans · local SQLite cache**
 
@@ -135,7 +135,7 @@ await engine.close();
 
 ## Develop from source
 
-Requires Node.js 22.19+ and Corepack.
+Requires Node.js 24.9+ and Corepack.
 
 ```bash
 git clone https://github.com/nisconder/npm-safe-forDSH.git
@@ -164,8 +164,9 @@ node scripts/smoke-facade.mjs
 
 The workspace contains [`@npm-safe/core-dsh`](packages/core) and the
 [`@npm-safe/dsh-tool-npm-safe`](packages/tool-npm-safe) bundle. DSH peer
-packages are aligned to the `0.1.0-rc.6` family; upgrades must remain aligned
-while DeepSeek Harness is in developer preview.
+packages are aligned to the `0.2.1-rc.5` family, and the bundle declares
+`engines.dsh` as `>=0.2.1-rc.5 <0.3.0`; upgrades must keep the peers and that
+range aligned while DeepSeek Harness is in developer preview.
 
 ## Documentation
 
