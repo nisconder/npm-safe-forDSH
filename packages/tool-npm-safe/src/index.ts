@@ -1,11 +1,82 @@
 import { NpmSafeEngine } from '@npm-safe/core-dsh'
-import type { Severity, SecurityLevel, RuleDescriptor } from '@npm-safe/core-dsh'
+import type { CiReport, RuleDescriptor, ScanFinding, SecurityLevel, Severity } from '@npm-safe/core-dsh'
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { JobKind, JobOutcome } from '@deepseek-ai/dsh-jobs'
+// Loads the Context augmentation for ctx.workingDirectory.
+import type {} from '@deepseek-ai/dsh-working-directory'
 
 export const name = 'tool-npm-safe'
-export const inject = ['tools', 'jobs']
+export const inject = ['tools', 'jobs', 'workingDirectory']
+
+const MAX_FINDINGS = 10
+const MAX_BATCH_FINDINGS = 3
+const MAX_SNIPPET = 160
+
+const SEVERITY_RANK: Record<string, number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+  critical: 3,
+}
+
+interface FindingLike {
+  readonly ruleId: string
+  readonly ruleName: string
+  readonly severity: string
+  readonly category: string
+  readonly message: string
+  readonly filePath?: string
+  readonly lineNumber?: number
+  readonly codeSnippet?: string
+  readonly recommendation?: string
+}
+
+type OutputSeverity = 'low' | 'medium' | 'high' | 'critical'
+type OutputCategory =
+  | 'install-script'
+  | 'code-obfuscation'
+  | 'binary-download'
+  | 'sensitive-exposure'
+  | 'typosquatting'
+  | 'suspicious-dependency'
+  | 'homograph-attack'
+  | 'registry-mismatch'
+  | 'known-malicious'
+  | 'informational'
+
+function rankedFindings<T extends FindingLike>(findings: readonly T[]): T[] {
+  return [...findings].sort(
+    (a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0),
+  )
+}
+
+function clipSnippet(text: string): string {
+  return text.length > MAX_SNIPPET ? `${text.slice(0, MAX_SNIPPET)}...` : text
+}
+
+function formatFinding(finding: FindingLike): string {
+  const location = finding.filePath
+    ? ` (${finding.filePath}${finding.lineNumber ? `:${finding.lineNumber}` : ''})`
+    : finding.lineNumber
+      ? ` (line ${finding.lineNumber})`
+      : ''
+  return `- [${finding.severity}/${finding.category}] ${finding.ruleName}: ${finding.message}${location}`
+}
+
+function toOutputFinding(finding: ScanFinding) {
+  return {
+    ruleId: finding.ruleId,
+    ruleName: finding.ruleName,
+    severity: finding.severity as OutputSeverity,
+    category: finding.category as OutputCategory,
+    message: finding.message,
+    ...(finding.filePath ? { filePath: finding.filePath } : {}),
+    ...(finding.lineNumber ? { lineNumber: finding.lineNumber } : {}),
+    ...(finding.codeSnippet ? { codeSnippet: clipSnippet(finding.codeSnippet) } : {}),
+    ...(finding.recommendation ? { recommendation: finding.recommendation } : {}),
+  }
+}
 
 function formatBatch(
   results: ReadonlyArray<{
@@ -17,19 +88,33 @@ function formatBatch(
       readonly security: {
         readonly overallLevel: string
         readonly overallScore: number
-        readonly staticScan: { readonly findings: readonly unknown[] } | null
+        readonly staticScan: { readonly findings: readonly ScanFinding[] } | null
+        readonly llmScan?: {
+          readonly enabled: boolean
+          readonly findings?: readonly ScanFinding[]
+        }
       }
     }
   }>,
 ): string {
   return results
-    .map((r) =>
-      r.ok && r.result
-        ? `${r.name}: ${r.result.security.overallLevel} ` +
-          `(${r.result.security.overallScore}/100, ` +
-          `${r.result.security.staticScan?.findings.length ?? 0} findings)`
-        : `${r.name}: ERROR ${r.error ?? 'unknown error'}`,
-    )
+    .map((r) => {
+      if (!(r.ok && r.result)) return `${r.name}: ERROR ${r.error ?? 'unknown error'}`
+      const findings = [
+        ...(r.result.security.staticScan?.findings ?? []),
+        ...(r.result.security.llmScan?.enabled ? r.result.security.llmScan.findings ?? [] : []),
+      ]
+      const shown = rankedFindings(findings).slice(0, MAX_BATCH_FINDINGS)
+      const lines = [
+        `${r.name}: ${r.result.security.overallLevel} ` +
+          `(${r.result.security.overallScore}/100, ${findings.length} findings)`,
+        ...shown.map((finding) => `  ${formatFinding(finding)}`),
+      ]
+      if (findings.length > shown.length) {
+        lines.push(`  (+${findings.length - shown.length} more)`)
+      }
+      return lines.join('\n')
+    })
     .join('\n')
 }
 
@@ -39,13 +124,7 @@ function formatRules(rules: readonly RuleDescriptor[]): string {
     .join('\n')
 }
 
-function formatCiReport(report: {
-  readonly dir: string
-  readonly dependencyCount: number
-  readonly failLevel: string
-  readonly failed: boolean
-  readonly summary: Readonly<Record<string, number>>
-}): string {
+function formatCiReport(report: CiReport): string {
   const parts = [
     `dir: ${report.dir}`,
     `dependencies: ${report.dependencyCount}`,
@@ -54,6 +133,26 @@ function formatCiReport(report: {
   ]
   for (const [level, count] of Object.entries(report.summary)) {
     parts.push(`${level}: ${count}`)
+  }
+  const failedPackages = report.packages.filter((pkg) => pkg.failed || pkg.error)
+  if (failedPackages.length > 0) {
+    parts.push('failed packages:')
+    for (const pkg of failedPackages) {
+      const findings = pkg.findings ?? []
+      const shown = rankedFindings(findings).slice(0, MAX_BATCH_FINDINGS)
+      parts.push(
+        `- ${pkg.name}@${pkg.version}: ${pkg.level} ` +
+          `(${pkg.score}/100, ${pkg.findingCount} findings)` +
+          (pkg.deepScanStatus ? `; deep scan ${pkg.deepScanStatus}` : '') +
+          (pkg.error ? `; ${pkg.error}` : ''),
+      )
+      for (const finding of shown) {
+        parts.push(`  ${formatFinding(finding)}`)
+      }
+      if (findings.length > shown.length) {
+        parts.push(`  (+${findings.length - shown.length} more)`)
+      }
+    }
   }
   return parts.join('\n')
 }
@@ -95,16 +194,70 @@ export function apply(ctx: Context) {
           },
           filesScanned: { type: 'integer' },
           integrityVerified: { type: 'boolean' },
+          findings: {
+            type: 'array',
+            required: true,
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                ruleId: { type: 'string', required: true },
+                ruleName: { type: 'string', required: true },
+                severity: {
+                  type: 'string',
+                  required: true,
+                  enum: ['low', 'medium', 'high', 'critical'],
+                },
+                category: {
+                  type: 'string',
+                  required: true,
+                  enum: [
+                    'install-script',
+                    'code-obfuscation',
+                    'binary-download',
+                    'sensitive-exposure',
+                    'typosquatting',
+                    'suspicious-dependency',
+                    'homograph-attack',
+                    'registry-mismatch',
+                    'known-malicious',
+                    'informational',
+                  ],
+                },
+                message: { type: 'string', required: true },
+                filePath: { type: 'string' },
+                lineNumber: { type: 'integer' },
+                codeSnippet: {
+                  type: 'string',
+                  description: 'Truncated excerpt that triggered the finding',
+                },
+                recommendation: { type: 'string' },
+              },
+            },
+          },
+          findingsTruncated: { type: 'boolean', required: true },
         },
       },
-      render: (_args, value) => [{
-        type: 'text',
-        text: `${value.package}@${value.version}: ${value.level} ` +
-          `(${value.score}/100, ${value.findingCount} findings)` +
-          (value.deepScanStatus
-            ? `; deep scan ${value.deepScanStatus}, ${value.filesScanned ?? 0} files, integrity ${value.integrityVerified ? 'verified' : 'unverified'}`
-            : ''),
-      }],
+      render: (_args, value) => {
+        const findings = value.findings ?? []
+        const lines = [
+          `${value.package}@${value.version}: ${value.level} ` +
+            `(${value.score}/100, ${value.findingCount} findings)` +
+            (value.deepScanStatus
+              ? `; deep scan ${value.deepScanStatus}, ${value.filesScanned ?? 0} files, integrity ${value.integrityVerified ? 'verified' : 'unverified'}`
+              : ''),
+        ]
+        for (const finding of findings) {
+          lines.push(formatFinding(finding))
+          if (finding.codeSnippet) {
+            lines.push(`    ${finding.codeSnippet.replace(/\s+/g, ' ')}`)
+          }
+        }
+        if (value.findingsTruncated) {
+          lines.push(`(+${value.findingCount - findings.length} more findings not shown)`)
+        }
+        return [{ type: 'text', text: lines.join('\n') }]
+      },
     },
     async execute(args, exec) {
       const result = await engine.checkPackage(args.name, {
@@ -114,12 +267,17 @@ export function apply(ctx: Context) {
         signal: exec.signal,
       })
       const contentScan = result.security.staticScan?.contentScan
+      const findings = [
+        ...(result.security.staticScan?.findings ?? []),
+        ...(result.security.llmScan?.enabled ? result.security.llmScan.findings ?? [] : []),
+      ]
+      const shown = rankedFindings(findings).slice(0, MAX_FINDINGS)
       return {
         package: result.packageName,
         version: result.latestVersion,
         level: result.security.overallLevel,
         score: result.security.overallScore,
-        findingCount: result.security.staticScan?.findings.length ?? 0,
+        findingCount: findings.length,
         ...(contentScan
           ? {
               deepScanStatus: contentScan.status,
@@ -127,6 +285,8 @@ export function apply(ctx: Context) {
               integrityVerified: contentScan.integrityVerified,
             }
           : {}),
+        findings: shown.map(toOutputFinding),
+        findingsTruncated: findings.length > shown.length,
       }
     },
   }))
@@ -353,7 +513,11 @@ export function apply(ctx: Context) {
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args, exec) {
+      const dir = exec.agent
+        ? await ctx.workingDirectory.ensure(exec.agent, exec.signal)
+        : undefined
       const report = await engine.ciScan({
+        ...(dir ? { dir } : {}),
         failLevel: (args.failLevel ?? 'dangerous') as SecurityLevel,
         lockfile: args.lockfile ?? false,
         prod: args.prod ?? false,
