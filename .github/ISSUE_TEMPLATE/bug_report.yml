@@ -17,7 +17,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      placeholder: "Node 24, DSH 0.1.0-rc.6, Windows 11"
+      placeholder: "Node 24.9, DSH 0.2.1-rc.5, Windows 11"
     validations:
       required: true
   - type: textarea
