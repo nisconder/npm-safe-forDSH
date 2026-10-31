@@ -24,7 +24,7 @@
     "security-scanner"
   ],
   "engines": {
-    "node": ">=22.19"
+    "node": ">=24.9"
   },
   "publishConfig": {
     "access": "public",
@@ -39,7 +39,7 @@
     "@npm-safe/core": "1.1.2"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.0.0"
   },

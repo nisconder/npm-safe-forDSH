@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
-  "engines": { "node": ">=22.19" },
+  "engines": { "node": ">=24.9" },
   "scripts": { "typecheck": "pnpm -r run typecheck", "build": "pnpm -r run build", "test": "pnpm -r run test" },
   "devDependencies": { "@npm-safe/core-dsh": "workspace:^" },
   "repository": {
