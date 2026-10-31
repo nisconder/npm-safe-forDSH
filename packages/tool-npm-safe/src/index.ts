@@ -399,7 +399,7 @@ export function apply(ctx: Context) {
         // 采用类型断言：kind 在运行时是不透明 id 前缀。
         kind: 'npm-safe' as JobKind,
         label: 'Refresh all watched packages',
-        owner: exec.agent,
+        ...(exec.agent ? { owner: exec.agent.id } : {}),
         run: () => {
           const controller = new AbortController()
           const done = (async (): Promise<JobOutcome> => {
@@ -408,7 +408,7 @@ export function apply(ctx: Context) {
               return {
                 status: 'completed',
                 detail: ok ? 'All packages refreshed' : 'Some packages failed',
-                output: ok ? 'Refresh completed' : 'Refresh finished with failures',
+                result: ok ? 'Refresh completed' : 'Refresh finished with failures',
               }
             } catch (error) {
               if (controller.signal.aborted) {

@@ -250,7 +250,7 @@ describe('tool-npm-safe plugin', () => {
     const spec = capturedJobSpecs[0]
     expect(spec.kind).toBe('npm-safe')
     expect(spec.label).toBe('Refresh all watched packages')
-    expect(spec.owner).toBe(agent)
+    expect(spec.owner).toBe(agent.id)
     expect(typeof spec.run).toBe('function')
 
     // Invoke the captured run() and await its done promise
