@@ -6,6 +6,7 @@
  * engine, no better-sqlite3, no network, no DEEPSEEK_API_KEY.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
 
 // ---------------------------------------------------------------------------
 // Mock @npm-safe/core — hoisted so vi.mock can reference it.
@@ -116,6 +117,9 @@ function createStubContext() {
   const capturedTools: any[] = []
   const capturedJobSpecs: any[] = []
   const capturedCleanups: Array<() => void> = []
+  const workingDirectory = {
+    ensure: vi.fn(async () => '/workspace'),
+  }
 
   const ctx: any = {
     tools: {
@@ -124,6 +128,7 @@ function createStubContext() {
         return () => {}
       },
     },
+    workingDirectory,
     jobs: {
       start(spec: any) {
         capturedJobSpecs.push(spec)
@@ -137,7 +142,7 @@ function createStubContext() {
     },
   }
 
-  return { ctx, capturedTools, capturedJobSpecs, capturedCleanups }
+  return { ctx, capturedTools, capturedJobSpecs, capturedCleanups, workingDirectory }
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +153,7 @@ describe('tool-npm-safe plugin', () => {
   let capturedJobSpecs: any[]
   let engine: any
   let capturedCleanups: Array<() => void>
+  let workingDirectory: { ensure: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     mock.instances.length = 0
@@ -156,6 +162,7 @@ describe('tool-npm-safe plugin', () => {
     capturedTools = stub.capturedTools
     capturedJobSpecs = stub.capturedJobSpecs
     capturedCleanups = stub.capturedCleanups
+    workingDirectory = stub.workingDirectory
     engine = mock.instances[0]
   })
 
@@ -190,6 +197,16 @@ describe('tool-npm-safe plugin', () => {
       deepScanStatus: 'complete',
       filesScanned: 7,
       integrityVerified: true,
+      findings: [
+        {
+          ruleId: 'r',
+          ruleName: 'R',
+          severity: 'high',
+          category: 'install-script',
+          message: 'm',
+        },
+      ],
+      findingsTruncated: false,
     })
     expect(engine.checkPackage).toHaveBeenCalledWith('lodash', {
       version: '4.17.21',
@@ -197,6 +214,9 @@ describe('tool-npm-safe plugin', () => {
       deep: true,
       signal,
     })
+    expect(validateJsonSchemaValue(tool.output.schema, result)).toEqual([])
+    const blocks = tool.output.render({}, result)
+    expect(blocks[0].text).toContain('[high/install-script] R: m')
   })
 
   it('exposes version selection in the tool schema', () => {
@@ -244,6 +264,7 @@ describe('tool-npm-safe plugin', () => {
     const agent = { id: 'agent-1' }
     const execResult = await tool.execute({}, { agent } as any)
     expect(execResult).toEqual({ kind: 'background', jobId: 'npm-safe-1' })
+    expect(validateJsonSchemaValue(tool.output.schema, execResult)).toEqual([])
 
     // ctx.jobs.start was called with the expected spec shape
     expect(capturedJobSpecs).toHaveLength(1)
@@ -304,5 +325,48 @@ describe('tool-npm-safe plugin', () => {
       deep: true,
       signal,
     })
+  })
+
+  it('ci_scan scans the agent working directory and lists failed package evidence', async () => {
+    engine.ciScan.mockResolvedValueOnce({
+      dir: '/workspace',
+      scannedAt: '2026-01-01T00:00:00.000Z',
+      dependencyCount: 1,
+      failLevel: 'dangerous',
+      failed: true,
+      summary: { safe: 0, suspicious: 0, dangerous: 1, unknown: 0, errors: 0, deepIncomplete: 0 },
+      packages: [
+        {
+          name: 'bad-pkg',
+          exists: true,
+          version: '1.0.0',
+          level: 'dangerous',
+          score: 12,
+          findingCount: 1,
+          failed: true,
+          findings: [
+            {
+              ruleId: 'install-script',
+              ruleName: 'Install script',
+              severity: 'high',
+              category: 'install-script',
+              message: 'runs curl at install time',
+              filePath: 'package.json',
+            },
+          ],
+        },
+      ],
+    })
+    const tool = capturedTools.find((t) => t.name === 'ci_scan')
+    const agent = { id: 'agent-1' }
+    const signal = new AbortController().signal
+    const result = await tool.execute({ failLevel: 'dangerous' }, { agent, signal } as any)
+
+    expect(workingDirectory.ensure).toHaveBeenCalledWith(agent, signal)
+    expect(engine.ciScan).toHaveBeenCalledWith(expect.objectContaining({ dir: '/workspace' }))
+    expect(result).toContain('failed packages:')
+    expect(result).toContain('bad-pkg@1.0.0')
+    expect(result).toContain('Install script')
+    expect(result).toContain('package.json')
   })
 })

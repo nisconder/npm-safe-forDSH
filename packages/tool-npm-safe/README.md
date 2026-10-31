@@ -36,6 +36,7 @@ This plugin requires the following peer packages:
 | `@deepseek-ai/cordis` | `~4.0.5` |
 | `@deepseek-ai/dsh-tools` | `^0.2.1-rc.5` |
 | `@deepseek-ai/dsh-jobs-local` | `^0.2.1-rc.5` |
+| `@deepseek-ai/dsh-working-directory` | `^0.2.1-rc.5` |
 
 The bundle declares `engines.dsh` as `>=0.2.1-rc.5 <0.3.0` and requires Node.js
 24.9+.
@@ -59,8 +60,8 @@ The plugin registers the following 14 tools in a dsh session:
 
 | Tool | Purpose | Execution |
 |---|---|---|
-| `check_package` | Check one package; optional `version`, `forceRefresh`, and `deep` | Foreground (signal-forwarded) |
-| `check_packages` | Check multiple packages; optional `deep` inspection | Foreground (rate-limited) |
+| `check_package` | Check one package; optional `version`, `forceRefresh`, and `deep`; returns ranked findings with rule and location | Foreground (signal-forwarded) |
+| `check_packages` | Check multiple packages; optional `deep` inspection; returns the top findings per package | Foreground (rate-limited) |
 | `search_packages` | Keyword search of the npm registry | Foreground |
 | `watch_add` | Add a package to the watchlist | Foreground |
 | `watch_remove` | Remove a package from the watchlist | Foreground |
@@ -71,7 +72,7 @@ The plugin registers the following 14 tools in a dsh session:
 | `rule_set_severity` | Override a rule's severity (persisted) | Foreground |
 | `settings_get` | Read an engine setting | Foreground |
 | `settings_set` | Write an engine setting (persisted) | Foreground |
-| `ci_scan` | Dependency gate scan; optional `deep` inspection | Foreground |
+| `ci_scan` | Dependency gate scan in the agent's working directory; optional `deep` inspection; lists failed packages with findings | Foreground |
 | `refresh_all` | Refresh all watched packages | Background (`ctx.jobs.start`) |
 
 ## Usage Examples
