@@ -149,7 +149,7 @@ pnpm run typecheck
 pnpm run test
 ```
 
-The repository pins a release tarball of `@npm-safe/core@1.1.2` under `vendor/`
+The repository pins a release tarball of `@npm-safe/core@1.1.3` under `vendor/`
 through a workspace override. The scanner source is maintained only in
 [`nisconder/npm-safe`](https://github.com/nisconder/npm-safe). `packages/core`
 is a small compatibility facade, with no copied scanner, database, or registry
