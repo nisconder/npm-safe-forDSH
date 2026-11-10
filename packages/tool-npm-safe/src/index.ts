@@ -19,6 +19,7 @@ const MAX_LABEL = 100
 const MAX_ERROR = 300
 const MAX_NAME = 214
 const MAX_VERSION = 100
+const MAX_CI_REPORT = 20_000
 
 const SEVERITY_RANK: Record<string, number> = {
   low: 0,
@@ -157,21 +158,36 @@ function formatCiReport(report: CiReport): string {
   const failedPackages = report.packages.filter((pkg) => pkg.failed || pkg.error)
   if (failedPackages.length > 0) {
     parts.push('failed packages:')
+    const omittedNotice = (count: number) =>
+      `(+${count} failed packages not shown; report output limit reached)`
+    let outputLength = parts.join('\n').length
+    let shownPackages = 0
     for (const pkg of failedPackages) {
       const findings = pkg.findings ?? []
       const shown = rankedFindings(findings).slice(0, MAX_BATCH_FINDINGS)
-      parts.push(
+      const packageLines = [
         `- ${clip(pkg.name, MAX_NAME)}@${clip(pkg.version, MAX_VERSION)}: ${pkg.level} ` +
           `(${pkg.score}/100, ${pkg.findingCount} findings)` +
           (pkg.deepScanStatus ? `; deep scan ${pkg.deepScanStatus}` : '') +
           (pkg.error ? `; ${clip(pkg.error, MAX_ERROR)}` : ''),
-      )
+      ]
       for (const finding of shown) {
-        parts.push(`  ${formatFinding(finding)}`)
+        packageLines.push(`  ${formatFinding(finding)}`)
       }
       if (findings.length > shown.length) {
-        parts.push(`  (+${findings.length - shown.length} more)`)
+        packageLines.push(`  (+${findings.length - shown.length} more)`)
       }
+      const packageText = packageLines.join('\n')
+      const remaining = failedPackages.length - shownPackages - 1
+      // Reserve the omission notice while keeping each package's evidence whole.
+      const noticeLength = remaining > 0 ? omittedNotice(remaining).length + 1 : 0
+      if (outputLength + packageText.length + 1 + noticeLength > MAX_CI_REPORT) break
+      parts.push(packageText)
+      outputLength += packageText.length + 1
+      shownPackages++
+    }
+    if (shownPackages < failedPackages.length) {
+      parts.push(omittedNotice(failedPackages.length - shownPackages))
     }
   }
   return parts.join('\n')

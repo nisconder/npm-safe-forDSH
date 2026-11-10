@@ -368,6 +368,7 @@ describe('tool-npm-safe plugin', () => {
     expect(result).toContain('bad-pkg@1.0.0')
     expect(result).toContain('Install script')
     expect(result).toContain('package.json')
+    expect(result).not.toContain('report output limit reached')
   })
 
   // (h) package-controlled text must not bypass the output budget
@@ -375,6 +376,52 @@ describe('tool-npm-safe plugin', () => {
     const hugeText = 'https://example.invalid/' + 'x'.repeat(1_000_000)
     const hugeName = 'n'.repeat(1_000_000)
     const hugeVersion = `9.${'9'.repeat(1_000_000)}`
+
+    it('ci_scan bounds a large report while preserving totals and complete package evidence', async () => {
+      const findings = Array.from({ length: 3 }, (_, index) => ({
+        ruleId: `rule-${index}`,
+        ruleName: `Install rule ${index}`,
+        severity: 'high',
+        category: 'install-script',
+        message: 'Install-script evidence. '.repeat(12),
+        filePath: 'package.json',
+      }))
+      const packages = Array.from({ length: 1000 }, (_, index) => ({
+        name: `package-${index}`,
+        exists: true,
+        version: '1.0.0',
+        level: 'dangerous',
+        score: 0,
+        findingCount: findings.length,
+        failed: true,
+        findings,
+      }))
+      engine.ciScan.mockResolvedValueOnce({
+        dir: '/workspace',
+        scannedAt: '2026-01-01T00:00:00.000Z',
+        dependencyCount: packages.length,
+        failLevel: 'dangerous',
+        failed: true,
+        summary: { safe: 0, suspicious: 0, dangerous: 1000, unknown: 0, errors: 0, deepIncomplete: 0 },
+        packages,
+      })
+      const tool = capturedTools.find((t) => t.name === 'ci_scan')
+      const result = await tool.execute(
+        { lockfile: true },
+        { agent: { id: 'agent-1' }, signal: new AbortController().signal } as any,
+      )
+      expect(validateJsonSchemaValue(tool.output.schema, result)).toEqual([])
+      expect(result.length).toBeLessThanOrEqual(20_000)
+      expect(result).toContain('dependencies: 1000')
+      expect(result).toContain('dangerous: 1000')
+      expect(result).toContain('failed: true')
+      const shown = (result.match(/^- package-\d+@1\.0\.0:/gm) ?? []).length
+      const omitted = result.match(/\(\+(\d+) failed packages not shown; report output limit reached\)$/)
+      expect(shown).toBeGreaterThan(0)
+      expect(omitted).not.toBeNull()
+      expect(shown + Number(omitted![1])).toBe(packages.length)
+      expect((result.match(/\[high\/install-script\]/g) ?? []).length).toBe(shown * 3)
+    })
     const hugeFinding = () => ({
       ruleId: 'registry-mismatch',
       ruleName: 'Registry mismatch',
