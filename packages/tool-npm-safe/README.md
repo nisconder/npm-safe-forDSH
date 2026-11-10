@@ -33,12 +33,12 @@ This plugin requires the following peer packages:
 
 | Package | Version |
 |---|---|
-| `@deepseek-ai/cordis` | `~4.0.5` |
-| `@deepseek-ai/dsh-tools` | `^0.2.1-rc.5` |
-| `@deepseek-ai/dsh-jobs-local` | `^0.2.1-rc.5` |
-| `@deepseek-ai/dsh-working-directory` | `^0.2.1-rc.5` |
+| `@deepseek-ai/cordis` | `~4.1.0` |
+| `@deepseek-ai/dsh-tools` | `^0.2.2-rc.1` |
+| `@deepseek-ai/dsh-jobs-local` | `^0.2.2-rc.1` |
+| `@deepseek-ai/dsh-working-directory` | `^0.2.2-rc.1` |
 
-The bundle declares `engines.dsh` as `>=0.2.1-rc.5 <0.3.0` and requires Node.js
+The bundle declares `engines.dsh` as `>=0.2.2-rc.1 <0.3.0` and requires Node.js
 24.9+.
 
 ## Quick Start
