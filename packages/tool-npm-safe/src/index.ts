@@ -12,6 +12,11 @@ export const inject = ['tools', 'jobs', 'workingDirectory']
 const MAX_FINDINGS = 10
 const MAX_BATCH_FINDINGS = 3
 const MAX_SNIPPET = 160
+const MAX_MESSAGE = 300
+const MAX_RECOMMENDATION = 300
+const MAX_PATH = 200
+const MAX_LABEL = 100
+const MAX_ERROR = 300
 
 const SEVERITY_RANK: Record<string, number> = {
   low: 0,
@@ -51,30 +56,41 @@ function rankedFindings<T extends FindingLike>(findings: readonly T[]): T[] {
   )
 }
 
+// Findings can echo package-controlled text (registry URLs, archive paths, LLM
+// output); every rendered field must be bounded or one finding can exhaust the
+// model's context window.
+function clip(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
 function clipSnippet(text: string): string {
-  return text.length > MAX_SNIPPET ? `${text.slice(0, MAX_SNIPPET)}...` : text
+  return clip(text, MAX_SNIPPET)
 }
 
 function formatFinding(finding: FindingLike): string {
-  const location = finding.filePath
-    ? ` (${finding.filePath}${finding.lineNumber ? `:${finding.lineNumber}` : ''})`
+  const filePath = finding.filePath ? clip(finding.filePath, MAX_PATH) : undefined
+  const location = filePath
+    ? ` (${filePath}${finding.lineNumber ? `:${finding.lineNumber}` : ''})`
     : finding.lineNumber
       ? ` (line ${finding.lineNumber})`
       : ''
-  return `- [${finding.severity}/${finding.category}] ${finding.ruleName}: ${finding.message}${location}`
+  return `- [${finding.severity}/${finding.category}] ${clip(finding.ruleName, MAX_LABEL)}: ` +
+    `${clip(finding.message, MAX_MESSAGE)}${location}`
 }
 
 function toOutputFinding(finding: ScanFinding) {
   return {
-    ruleId: finding.ruleId,
-    ruleName: finding.ruleName,
+    ruleId: clip(finding.ruleId, MAX_LABEL),
+    ruleName: clip(finding.ruleName, MAX_LABEL),
     severity: finding.severity as OutputSeverity,
     category: finding.category as OutputCategory,
-    message: finding.message,
-    ...(finding.filePath ? { filePath: finding.filePath } : {}),
+    message: clip(finding.message, MAX_MESSAGE),
+    ...(finding.filePath ? { filePath: clip(finding.filePath, MAX_PATH) } : {}),
     ...(finding.lineNumber ? { lineNumber: finding.lineNumber } : {}),
     ...(finding.codeSnippet ? { codeSnippet: clipSnippet(finding.codeSnippet) } : {}),
-    ...(finding.recommendation ? { recommendation: finding.recommendation } : {}),
+    ...(finding.recommendation
+      ? { recommendation: clip(finding.recommendation, MAX_RECOMMENDATION) }
+      : {}),
   }
 }
 
@@ -99,7 +115,9 @@ function formatBatch(
 ): string {
   return results
     .map((r) => {
-      if (!(r.ok && r.result)) return `${r.name}: ERROR ${r.error ?? 'unknown error'}`
+      if (!(r.ok && r.result)) {
+        return `${r.name}: ERROR ${clip(r.error ?? 'unknown error', MAX_ERROR)}`
+      }
       const findings = [
         ...(r.result.security.staticScan?.findings ?? []),
         ...(r.result.security.llmScan?.enabled ? r.result.security.llmScan.findings ?? [] : []),
@@ -144,7 +162,7 @@ function formatCiReport(report: CiReport): string {
         `- ${pkg.name}@${pkg.version}: ${pkg.level} ` +
           `(${pkg.score}/100, ${pkg.findingCount} findings)` +
           (pkg.deepScanStatus ? `; deep scan ${pkg.deepScanStatus}` : '') +
-          (pkg.error ? `; ${pkg.error}` : ''),
+          (pkg.error ? `; ${clip(pkg.error, MAX_ERROR)}` : ''),
       )
       for (const finding of shown) {
         parts.push(`  ${formatFinding(finding)}`)

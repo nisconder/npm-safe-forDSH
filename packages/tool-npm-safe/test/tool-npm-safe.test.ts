@@ -369,4 +369,115 @@ describe('tool-npm-safe plugin', () => {
     expect(result).toContain('Install script')
     expect(result).toContain('package.json')
   })
+
+  // (h) package-controlled text must not bypass the output budget
+  describe('finding text bounds', () => {
+    const hugeText = 'https://example.invalid/' + 'x'.repeat(1_000_000)
+    const hugeFinding = () => ({
+      ruleId: 'registry-mismatch',
+      ruleName: 'Registry mismatch',
+      severity: 'high',
+      category: 'registry-mismatch',
+      message: `publishConfig.registry is set to a non-standard registry: ${hugeText}`,
+      filePath: `dist/${'p'.repeat(60_000)}/package.json`,
+      lineNumber: 1,
+      codeSnippet: hugeText,
+      recommendation: hugeText,
+    })
+    const hugeCheckResult = () => ({
+      packageName: 'evil',
+      exists: true,
+      latestVersion: '1.0.0',
+      security: {
+        overallLevel: 'dangerous',
+        overallScore: 0,
+        staticScan: {
+          packageName: 'evil',
+          version: '1.0.0',
+          overallLevel: 'dangerous',
+          score: 0,
+          findings: [hugeFinding()],
+          contentScan: {
+            status: 'complete',
+            archiveBytes: 1,
+            unpackedBytes: 1,
+            filesScanned: 1,
+            filesSkipped: 0,
+            integrityVerified: true,
+            truncated: false,
+          },
+          scannedAt: '2026-01-01T00:00:00.000Z',
+        },
+        llmScan: undefined,
+      },
+      registryInfo: { description: '', homepage: '', repository: '' },
+      cachedAt: null,
+    })
+
+    it('check_package clamps message, recommendation, path and snippet in schema and render', async () => {
+      engine.checkPackage.mockResolvedValueOnce(hugeCheckResult())
+      const tool = capturedTools.find((t) => t.name === 'check_package')
+      const result = await tool.execute(
+        { name: 'evil' },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(validateJsonSchemaValue(tool.output.schema, result)).toEqual([])
+      const [finding] = result.findings
+      expect(finding.message.length).toBeLessThanOrEqual(303)
+      expect(finding.message.endsWith('...')).toBe(true)
+      expect(finding.recommendation.length).toBeLessThanOrEqual(303)
+      expect(finding.filePath.length).toBeLessThanOrEqual(203)
+      expect(finding.codeSnippet.length).toBeLessThanOrEqual(163)
+      const text = tool.output.render({}, result)[0].text
+      expect(text.length).toBeLessThan(1500)
+      expect(text).not.toContain('x'.repeat(1000))
+    })
+
+    it('check_packages clamps finding text and error text', async () => {
+      engine.checkPackages.mockResolvedValueOnce([
+        { name: 'evil', ok: true, result: hugeCheckResult() },
+        { name: 'dead', ok: false, error: hugeText },
+      ])
+      const tool = capturedTools.find((t) => t.name === 'check_packages')
+      const result = await tool.execute(
+        { names: ['evil', 'dead'] },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(result.length).toBeLessThan(1500)
+      expect(result).not.toContain('x'.repeat(1000))
+      expect(result).not.toContain('p'.repeat(1000))
+    })
+
+    it('ci_scan clamps finding text and package error text', async () => {
+      engine.ciScan.mockResolvedValueOnce({
+        dir: '/workspace',
+        scannedAt: '2026-01-01T00:00:00.000Z',
+        dependencyCount: 1,
+        failLevel: 'dangerous',
+        failed: true,
+        summary: { safe: 0, suspicious: 0, dangerous: 1, unknown: 0, errors: 1, deepIncomplete: 0 },
+        packages: [
+          {
+            name: 'evil',
+            exists: true,
+            version: '1.0.0',
+            level: 'dangerous',
+            score: 0,
+            findingCount: 1,
+            failed: true,
+            findings: [hugeFinding()],
+            error: hugeText,
+          },
+        ],
+      })
+      const tool = capturedTools.find((t) => t.name === 'ci_scan')
+      const result = await tool.execute(
+        { failLevel: 'dangerous' },
+        { agent: { id: 'agent-1' }, signal: new AbortController().signal } as any,
+      )
+      expect(result.length).toBeLessThan(2000)
+      expect(result).not.toContain('x'.repeat(1000))
+      expect(result).not.toContain('p'.repeat(1000))
+    })
+  })
 })
