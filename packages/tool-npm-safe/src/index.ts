@@ -17,6 +17,8 @@ const MAX_RECOMMENDATION = 300
 const MAX_PATH = 200
 const MAX_LABEL = 100
 const MAX_ERROR = 300
+const MAX_NAME = 214
+const MAX_VERSION = 100
 
 const SEVERITY_RANK: Record<string, number> = {
   low: 0,
@@ -56,9 +58,9 @@ function rankedFindings<T extends FindingLike>(findings: readonly T[]): T[] {
   )
 }
 
-// Findings can echo package-controlled text (registry URLs, archive paths, LLM
-// output); every rendered field must be bounded or one finding can exhaust the
-// model's context window.
+// Scan results echo package-controlled text (names, versions, descriptions,
+// registry URLs, archive paths, LLM output); every rendered field must be
+// bounded or a single package can exhaust the model's context window.
 function clip(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}...` : text
 }
@@ -116,7 +118,7 @@ function formatBatch(
   return results
     .map((r) => {
       if (!(r.ok && r.result)) {
-        return `${r.name}: ERROR ${clip(r.error ?? 'unknown error', MAX_ERROR)}`
+        return `${clip(r.name, MAX_NAME)}: ERROR ${clip(r.error ?? 'unknown error', MAX_ERROR)}`
       }
       const findings = [
         ...(r.result.security.staticScan?.findings ?? []),
@@ -124,7 +126,7 @@ function formatBatch(
       ]
       const shown = rankedFindings(findings).slice(0, MAX_BATCH_FINDINGS)
       const lines = [
-        `${r.name}: ${r.result.security.overallLevel} ` +
+        `${clip(r.name, MAX_NAME)}: ${r.result.security.overallLevel} ` +
           `(${r.result.security.overallScore}/100, ${findings.length} findings)`,
         ...shown.map((finding) => `  ${formatFinding(finding)}`),
       ]
@@ -144,7 +146,7 @@ function formatRules(rules: readonly RuleDescriptor[]): string {
 
 function formatCiReport(report: CiReport): string {
   const parts = [
-    `dir: ${report.dir}`,
+    `dir: ${clip(report.dir, MAX_PATH)}`,
     `dependencies: ${report.dependencyCount}`,
     `fail level: ${report.failLevel}`,
     `failed: ${report.failed}`,
@@ -159,7 +161,7 @@ function formatCiReport(report: CiReport): string {
       const findings = pkg.findings ?? []
       const shown = rankedFindings(findings).slice(0, MAX_BATCH_FINDINGS)
       parts.push(
-        `- ${pkg.name}@${pkg.version}: ${pkg.level} ` +
+        `- ${clip(pkg.name, MAX_NAME)}@${clip(pkg.version, MAX_VERSION)}: ${pkg.level} ` +
           `(${pkg.score}/100, ${pkg.findingCount} findings)` +
           (pkg.deepScanStatus ? `; deep scan ${pkg.deepScanStatus}` : '') +
           (pkg.error ? `; ${clip(pkg.error, MAX_ERROR)}` : ''),
@@ -291,8 +293,8 @@ export function apply(ctx: Context) {
       ]
       const shown = rankedFindings(findings).slice(0, MAX_FINDINGS)
       return {
-        package: result.packageName,
-        version: result.latestVersion,
+        package: clip(result.packageName, MAX_NAME),
+        version: clip(result.latestVersion, MAX_VERSION),
         level: result.security.overallLevel,
         score: result.security.overallScore,
         findingCount: findings.length,
@@ -358,7 +360,10 @@ export function apply(ctx: Context) {
         signal: exec.signal,
       })
       return rows
-        .map((r) => `${r.package.name}@${r.package.version}: ${r.package.description ?? ''}`)
+        .map((r) =>
+          `${clip(r.package.name, MAX_NAME)}@${clip(r.package.version, MAX_VERSION)}: ` +
+          `${clip(r.package.description ?? '', MAX_MESSAGE)}`,
+        )
         .join('\n')
     },
   }))

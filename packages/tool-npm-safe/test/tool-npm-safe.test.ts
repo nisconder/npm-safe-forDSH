@@ -371,8 +371,10 @@ describe('tool-npm-safe plugin', () => {
   })
 
   // (h) package-controlled text must not bypass the output budget
-  describe('finding text bounds', () => {
+  describe('output text bounds', () => {
     const hugeText = 'https://example.invalid/' + 'x'.repeat(1_000_000)
+    const hugeName = 'n'.repeat(1_000_000)
+    const hugeVersion = `9.${'9'.repeat(1_000_000)}`
     const hugeFinding = () => ({
       ruleId: 'registry-mismatch',
       ruleName: 'Registry mismatch',
@@ -478,6 +480,86 @@ describe('tool-npm-safe plugin', () => {
       expect(result.length).toBeLessThan(2000)
       expect(result).not.toContain('x'.repeat(1000))
       expect(result).not.toContain('p'.repeat(1000))
+    })
+
+    it('check_package clamps the echoed package name and version', async () => {
+      engine.checkPackage.mockResolvedValueOnce({
+        ...hugeCheckResult(),
+        packageName: hugeName,
+        latestVersion: hugeVersion,
+      })
+      const tool = capturedTools.find((t) => t.name === 'check_package')
+      const result = await tool.execute(
+        { name: 'evil' },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(validateJsonSchemaValue(tool.output.schema, result)).toEqual([])
+      expect(result.package.length).toBeLessThanOrEqual(217)
+      expect(result.version.length).toBeLessThanOrEqual(103)
+      const text = tool.output.render({}, result)[0].text
+      expect(text.length).toBeLessThan(1500)
+      expect(text).not.toContain('n'.repeat(1000))
+      expect(text).not.toContain('9'.repeat(1000))
+    })
+
+    it('check_packages clamps a package name echoed into the report', async () => {
+      engine.checkPackages.mockResolvedValueOnce([
+        { name: hugeName, ok: true, result: hugeCheckResult() },
+      ])
+      const tool = capturedTools.find((t) => t.name === 'check_packages')
+      const result = await tool.execute(
+        { names: ['evil'] },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(result.length).toBeLessThan(1500)
+      expect(result).not.toContain('n'.repeat(1000))
+    })
+
+    it('ci_scan clamps the package name and version listed in the report', async () => {
+      engine.ciScan.mockResolvedValueOnce({
+        dir: '/workspace',
+        scannedAt: '2026-01-01T00:00:00.000Z',
+        dependencyCount: 1,
+        failLevel: 'dangerous',
+        failed: true,
+        summary: { safe: 0, suspicious: 0, dangerous: 1, unknown: 0, errors: 0, deepIncomplete: 0 },
+        packages: [
+          {
+            name: hugeName,
+            exists: true,
+            version: hugeVersion,
+            level: 'dangerous',
+            score: 0,
+            findingCount: 0,
+            failed: true,
+          },
+        ],
+      })
+      const tool = capturedTools.find((t) => t.name === 'ci_scan')
+      const result = await tool.execute(
+        { failLevel: 'dangerous' },
+        { agent: { id: 'agent-1' }, signal: new AbortController().signal } as any,
+      )
+      expect(result.length).toBeLessThan(1500)
+      expect(result).not.toContain('n'.repeat(1000))
+      expect(result).not.toContain('9'.repeat(1000))
+    })
+
+    it('search_packages clamps name, version and description from registry metadata', async () => {
+      engine.searchPackages.mockResolvedValueOnce([
+        {
+          package: { name: hugeName, version: hugeVersion, description: hugeText },
+          score: { final: 1 },
+        },
+      ])
+      const tool = capturedTools.find((t) => t.name === 'search_packages')
+      const result = await tool.execute(
+        { query: 'evil', limit: 1 },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(result.length).toBeLessThan(1500)
+      expect(result).not.toContain('n'.repeat(1000))
+      expect(result).not.toContain('x'.repeat(1000))
     })
   })
 })
