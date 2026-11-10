@@ -92,7 +92,9 @@ export class NpmSafeEngine extends SharedNpmSafeEngine {
           deep: options.deep,
           signal: options.signal,
         })
-        if (dep.version && result.exists && result.latestVersion !== dep.version) {
+        // Manifest versions can be ranges or dist-tags; only lockfiles require
+        // an exact match with the resolved version returned by the shared core.
+        if (options.lockfile && dep.version && result.exists && result.latestVersion !== dep.version) {
           throw new Error(`Requested ${dep.name}@${dep.version} but checked ${result.latestVersion}`)
         }
         const findings = [
