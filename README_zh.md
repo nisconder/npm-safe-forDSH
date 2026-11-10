@@ -9,6 +9,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/nisconder/npm-safe-forDSH/ci.yml?branch=main&label=CI)](https://github.com/nisconder/npm-safe-forDSH/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](LICENSE)
 [![Node](https://img.shields.io/badge/Node.js-24.9%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![dsh-plugin](https://img.shields.io/badge/dsh--plugin-4D6BFE?style=flat-square)](https://github.com/topics/dsh-plugin)
 
 **14 个智能体工具 · 22 项安全检查 · 完整性验证深度扫描 · 本地 SQLite 缓存**
 
@@ -145,8 +146,8 @@ node scripts/smoke-facade.mjs
 
 工作区包含 [`@npm-safe/core-dsh`](packages/core) 和
 [`@npm-safe/dsh-tool-npm-safe`](packages/tool-npm-safe) bundle。DSH peer 包与
-`0.2.1-rc.5` 版本族对齐，bundle 声明 `engines.dsh` 为
-`>=0.2.1-rc.5 <0.3.0`；DeepSeek Harness 仍处于开发者预览阶段，升级时必须让
+`0.2.2-rc.1` 版本族对齐，bundle 声明 `engines.dsh` 为
+`>=0.2.2-rc.1 <0.3.0`；DeepSeek Harness 仍处于开发者预览阶段，升级时必须让
 peer 与 `engines.dsh` 保持同步。
 
 扫描器源码只在主仓库维护；这里的 `packages/core` 是兼容薄层，不再复制扫描、
