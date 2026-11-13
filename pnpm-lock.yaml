@@ -567,7 +567,7 @@ packages:
     libc: [glibc]
 
   '@npm-safe/core@file:vendor/npm-safe-core-2.0.2.tgz':
-    resolution: {integrity: sha512-jXnmlU4c5ne2xfolbgAu/ULXo+RKgBqDnMaA7Fd5Uvfav69MYzvBEN1tHK2JE4kN9GTzNI48Nw4IDaST8e2ozg==, tarball: file:vendor/npm-safe-core-2.0.2.tgz}
+    resolution: {integrity: sha512-CnYQGWal86ljkWR9QycOBklaf5lyL15REf1Oa8dPAXwBVqtis4+DI0tC7HR+15gdc7UqTkME1osNGDajeJ5sIA==, tarball: file:vendor/npm-safe-core-2.0.2.tgz}
     version: 2.0.2
     engines: {node: '>=20.12.0'}
     hasBin: true

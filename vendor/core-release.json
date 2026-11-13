@@ -2,6 +2,6 @@
   "name": "@npm-safe/core",
   "version": "2.0.2",
   "filename": "npm-safe-core-2.0.2.tgz",
-  "integrity": "sha512-jXnmlU4c5ne2xfolbgAu/ULXo+RKgBqDnMaA7Fd5Uvfav69MYzvBEN1tHK2JE4kN9GTzNI48Nw4IDaST8e2ozg==",
+  "integrity": "sha512-CnYQGWal86ljkWR9QycOBklaf5lyL15REf1Oa8dPAXwBVqtis4+DI0tC7HR+15gdc7UqTkME1osNGDajeJ5sIA==",
   "sourceRepository": "https://github.com/nisconder/npm-safe"
 }
