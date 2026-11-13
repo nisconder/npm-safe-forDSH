@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@npm-safe/core': file:vendor/npm-safe-core-1.1.3.tgz
+  '@npm-safe/core': file:vendor/npm-safe-core-2.0.0.tgz
 
 importers:
 
@@ -18,8 +18,8 @@ importers:
   packages/core:
     dependencies:
       '@npm-safe/core':
-        specifier: file:../../vendor/npm-safe-core-1.1.3.tgz
-        version: file:vendor/npm-safe-core-1.1.3.tgz
+        specifier: file:../../vendor/npm-safe-core-2.0.0.tgz
+        version: file:vendor/npm-safe-core-2.0.0.tgz
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
@@ -557,9 +557,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@npm-safe/core@file:vendor/npm-safe-core-1.1.3.tgz':
-    resolution: {integrity: sha512-98cDfqC34jtvSK4J4xVxYn9GpYvWGNqWAqo86j+P4F50aUhhdSWDhUZEQJeNilj3KHNzyxZm74/7sMdaBOsDcA==, tarball: file:vendor/npm-safe-core-1.1.3.tgz}
-    version: 1.1.3
+  '@npm-safe/core@file:vendor/npm-safe-core-2.0.0.tgz':
+    resolution: {integrity: sha512-snWGHIaIprCUCySDNtXvDivHVvAg85FYZO+UKqEHoQpQ0lBHzT34vpXbWc71Wfl1ONYf6IKYwa8C7GH76oSEMQ==, tarball: file:vendor/npm-safe-core-2.0.0.tgz}
+    version: 2.0.0
     engines: {node: '>=20.12.0'}
     hasBin: true
 
@@ -1533,7 +1533,7 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@npm-safe/core@file:vendor/npm-safe-core-1.1.3.tgz':
+  '@npm-safe/core@file:vendor/npm-safe-core-2.0.0.tgz':
     dependencies:
       '@clack/prompts': 1.7.0
       better-sqlite3: 12.11.1
