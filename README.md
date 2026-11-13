@@ -10,6 +10,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](LICENSE)
 [![Node](https://img.shields.io/badge/Node.js-24.9%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![dsh-plugin](https://img.shields.io/badge/dsh--plugin-4D6BFE?style=flat-square)](https://github.com/topics/dsh-plugin)
+[![dsh.so risk](https://cdn.dsh.so/badge/npm-safe-fordsh.svg)](https://www.dsh.so/artifact/npm-safe-fordsh/?ref=badge)
 
 **14 agent tools · 27 security checks · integrity-verified deep scans · local SQLite cache**
 
@@ -157,7 +158,7 @@ pnpm run typecheck
 pnpm run test
 ```
 
-The repository pins a release tarball of `@npm-safe/core@2.0.0` under `vendor/`
+The repository pins a release tarball of `@npm-safe/core@2.0.1` under `vendor/`
 through a workspace override. The scanner source is maintained only in
 [`nisconder/npm-safe`](https://github.com/nisconder/npm-safe). `packages/core`
 is a small compatibility facade, with no copied scanner, database, or registry
@@ -173,8 +174,8 @@ node scripts/smoke-facade.mjs
 
 The workspace contains [`@npm-safe/core-dsh`](packages/core) and the
 [`@npm-safe/dsh-tool-npm-safe`](packages/tool-npm-safe) bundle. DSH peer
-packages are aligned to the `0.2.2-rc.1` family, and the bundle declares
-`engines.dsh` as `>=0.2.2-rc.1 <0.3.0`; upgrades must keep the peers and that
+packages are aligned to the `0.2.2-rc.3` family, and the bundle declares
+`engines.dsh` as `>=0.2.2-rc.3 <0.3.0`; upgrades must keep the peers and that
 range aligned while DeepSeek Harness is in developer preview.
 
 ## Documentation

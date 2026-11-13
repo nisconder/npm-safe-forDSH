@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-4CAF50)](https://github.com/nisconder/npm-safe-forDSH/blob/main/LICENSE)
 ![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)
 [![Node](https://img.shields.io/badge/Node.js-24.9%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![dsh.so risk](https://cdn.dsh.so/badge/npm-safe-fordsh.svg)](https://www.dsh.so/artifact/npm-safe-fordsh/?ref=badge)
 
 A [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness) plugin exposing the shared [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) scanner through a small compatibility facade and 14 tools.
 
@@ -34,12 +35,13 @@ This plugin requires the following peer packages:
 | Package | Version |
 |---|---|
 | `@deepseek-ai/cordis` | `~4.1.0` |
-| `@deepseek-ai/dsh-tools` | `^0.2.2-rc.1` |
-| `@deepseek-ai/dsh-jobs-local` | `^0.2.2-rc.1` |
-| `@deepseek-ai/dsh-working-directory` | `^0.2.2-rc.1` |
+| `@deepseek-ai/dsh-tools` | `^0.2.2-rc.3` |
+| `@deepseek-ai/dsh-jobs` | `^0.2.2-rc.3` |
+| `@deepseek-ai/dsh-working-directory` | `^0.2.2-rc.3` |
 
-The bundle declares `engines.dsh` as `>=0.2.2-rc.1 <0.3.0` and requires Node.js
-24.9+.
+The bundle declares manifest format 1, `dsh.bundle.patch`, and `engines.dsh`
+as `>=0.2.2-rc.3 <0.3.0`, and requires Node.js 24.9+. The host supplies the
+`jobs` service; the plugin does not require a particular job provider.
 
 ## Quick Start
 

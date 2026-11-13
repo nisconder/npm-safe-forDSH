@@ -2,9 +2,15 @@ import { NpmSafeEngine } from '@npm-safe/core-dsh'
 import type { CiReport, RuleDescriptor, ScanFinding, SecurityLevel, Severity } from '@npm-safe/core-dsh'
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { JobKind, JobOutcome } from '@deepseek-ai/dsh-jobs'
+import type { JobOutcome } from '@deepseek-ai/dsh-jobs'
 // Loads the Context augmentation for ctx.workingDirectory.
 import type {} from '@deepseek-ai/dsh-working-directory'
+
+declare module '@deepseek-ai/dsh-jobs/view' {
+  interface JobKindMap {
+    'npm-safe': 'npm-safe'
+  }
+}
 
 export const name = 'tool-npm-safe'
 export const inject = ['tools', 'jobs', 'workingDirectory']
@@ -612,9 +618,7 @@ export function apply(ctx: Context) {
     },
     async execute(_args, exec) {
       const jobId = ctx.jobs.start({
-        // JobKindMap 声明在未导出的 ./types 子模块中，无法可靠声明合并，
-        // 采用类型断言：kind 在运行时是不透明 id 前缀。
-        kind: 'npm-safe' as JobKind,
+        kind: 'npm-safe',
         label: 'Refresh all watched packages',
         ...(exec.agent ? { owner: exec.agent.id } : {}),
         run: () => {

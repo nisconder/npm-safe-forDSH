@@ -1,6 +1,6 @@
 {
   "name": "@npm-safe/core-dsh",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Thin DeepSeek Harness compatibility facade for the shared @npm-safe/core scanner",
   "license": "Apache-2.0",
   "type": "module",
@@ -36,7 +36,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@npm-safe/core": "2.0.0"
+    "@npm-safe/core": "2.0.1"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

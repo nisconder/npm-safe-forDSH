@@ -17,6 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Verify release versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          core_version=$(node -p "require('./packages/core/package.json').version")
+          tool_version=$(node -p "require('./packages/tool-npm-safe/package.json').version")
+          test "$core_version" = "$tool_version"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            test "$GITHUB_REF_NAME" = "v$core_version"
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
