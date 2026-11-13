@@ -8,6 +8,8 @@
 
 A [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness) plugin exposing the shared [`@npm-safe/core`](https://www.npmjs.com/package/@npm-safe/core) scanner through a small compatibility facade and 14 tools.
 
+Release `2.0.2` uses `@npm-safe/core-dsh@2.0.2` and the pinned shared `@npm-safe/core@2.0.2` scanner.
+
 Agents can call these tools before an installation decision. The plugin does
 not intercept shell commands or enforce a mandatory block on npm, pnpm, yarn,
 or DSH plugin installation. Your agent or host must require exact-version

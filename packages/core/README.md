@@ -2,6 +2,7 @@
 
 A thin compatibility facade over the shared `@npm-safe/core` scanner. This
 package contains no scanner, registry, scheduler, database, or cache copy.
+Release `2.0.2` pins the shared scanner to `@npm-safe/core@2.0.2`.
 See [the shared-core release workflow](../../vendor/README.md).
 
 ```ts

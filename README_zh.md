@@ -161,7 +161,7 @@ peer 与 `engines.dsh` 保持同步。
 
 扫描器源码只在主仓库维护；这里的 `packages/core` 是兼容薄层，不再复制扫描、
 缓存或注册表实现。开发工作区通过 `vendor/` 的发行 tarball 固定共享核心的确切
-内容（当前为 `@npm-safe/core@2.0.1`）。更新核心并验证适配器的方法见
+内容（当前为 `@npm-safe/core@2.0.2`）。更新核心并验证适配器的方法见
 [共享核心工作流](vendor/README.md)，脚本支持 `--core-tarball` 和 `--verify`。
 
 ## 文档

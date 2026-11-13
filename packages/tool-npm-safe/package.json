@@ -1,6 +1,6 @@
 {
   "name": "@npm-safe/dsh-tool-npm-safe",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "DeepSeek Harness tools for npm package metadata and deep supply-chain security checks",
   "license": "Apache-2.0",
   "type": "module",
