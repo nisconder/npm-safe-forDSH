@@ -8,6 +8,7 @@ import {
   Severity,
   FindingCategory,
 } from '@npm-safe/core'
+import type { CheckResult } from '@npm-safe/core'
 import { NpmSafeEngine, LEVEL_RANK, readDependencies, readLockfileDependencies } from '../src/index.js'
 
 describe('DSH compatibility facade using the actual shared scanner', () => {
@@ -233,6 +234,27 @@ describe('DSH compatibility facade using the actual shared scanner', () => {
     const report = await engine.ciScan({ dir, failLevel: SecurityLevel.Unknown })
     expect(report.failed).toBe(true)
     expect(report.packages[0].findingCount).toBe(1)
+  })
+
+  it('blocks complete malicious source review evidence even when the level would pass', async () => {
+    const result = safeResult()
+    const sourceReview = {
+      enabled: true,
+      status: 'complete',
+      verdict: 'malicious',
+      calls: 1,
+      findings: [{
+        ruleId: 'source-critical', ruleName: 'Source review', severity: Severity.Critical,
+        message: 'Critical source evidence', category: FindingCategory.CodeObfuscation,
+      }],
+    } as unknown as NonNullable<CheckResult['security']['sourceReview']>
+    vi.spyOn(engine, 'checkPackage').mockResolvedValue({
+      ...result, security: { ...result.security, sourceReview },
+    })
+    const report = await engine.ciScan({ dir, failLevel: SecurityLevel.Unknown })
+    expect(report.failed).toBe(true)
+    expect(report.packages[0].findingCount).toBe(1)
+    expect(report.packages[0].findings?.[0]?.ruleId).toBe('source-critical')
   })
 
   it('rejects an invalid failure level even for an empty dependency list', async () => {

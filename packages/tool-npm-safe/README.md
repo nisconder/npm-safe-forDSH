@@ -96,6 +96,10 @@ lodash@4.17.21: safe (82/100, 2 findings); deep scan complete, 154 files, integr
 Deep mode downloads the published tarball, rejects cross-origin downloads,
 verifies npm integrity metadata, and inspects bounded source content entirely
 in memory. It is optional because archive downloads add latency and bandwidth.
+When the shared engine has source review enabled through its saved configuration,
+those findings join the ranked evidence in `check_package`, `check_packages` and
+`ci_scan`; a critical source-review finding fails the CI gate regardless of
+`failLevel`.
 
 ### Batch check
 

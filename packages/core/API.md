@@ -21,9 +21,13 @@ engine.ciScan({
 The positional shared-core search API remains accepted. `ciScan()` returns
 `{ dir, scannedAt, dependencyCount, failLevel, failed, summary, packages }`.
 Each package entry includes the checked version, level, score, finding count,
-a `failed` flag, the findings behind that result, and any error. Lockfile scans retain each distinct name/version pair and
-production scans retain its transitive dependency graph. Critical findings,
-unknown assessments, missing packages, and scan errors fail the default gate.
+a `failed` flag, the findings behind that result, and any error. Findings merge
+static evidence, metadata LLM evidence, and source-review evidence when the
+shared engine has source review enabled. A critical finding from a completed
+source review fails the gate regardless of `failLevel`. Lockfile scans retain
+each distinct name/version pair and production scans retain its transitive
+dependency graph. Critical findings, unknown assessments, missing packages, and
+scan errors fail the default gate.
 
 Single checks support shared `version`, `forceRefresh`, `deep`, and `signal`
 options. Foreground operations and background refresh use the shared engine's

@@ -609,4 +609,62 @@ describe('tool-npm-safe plugin', () => {
       expect(result).not.toContain('x'.repeat(1000))
     })
   })
+
+  describe('source review evidence', () => {
+    const sourceFinding = {
+      ruleId: 'source-review-critical',
+      ruleName: 'Source review',
+      severity: 'critical',
+      category: 'known-malicious',
+      message: 'Source review flagged credential exfiltration.',
+    }
+    const sourceReviewedResult = () => ({
+      packageName: 'evil',
+      exists: true,
+      latestVersion: '1.0.0',
+      security: {
+        overallLevel: 'dangerous',
+        overallScore: 0,
+        staticScan: null,
+        sourceReview: {
+          enabled: true,
+          status: 'complete',
+          verdict: 'malicious',
+          findings: [sourceFinding],
+        },
+      },
+      registryInfo: { description: '', homepage: '', repository: '' },
+      cachedAt: null,
+    })
+
+    it('check_package surfaces critical source review findings', async () => {
+      engine.checkPackage.mockResolvedValueOnce(sourceReviewedResult())
+      const tool = capturedTools.find((t) => t.name === 'check_package')
+      const result = await tool.execute(
+        { name: 'evil' },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(validateJsonSchemaValue(tool.output.schema, result)).toEqual([])
+      expect(result.findingCount).toBe(1)
+      expect(result.findings[0]).toMatchObject({
+        ruleId: 'source-review-critical',
+        severity: 'critical',
+        category: 'known-malicious',
+      })
+      expect(tool.output.render({}, result)[0].text).toContain('Source review')
+    })
+
+    it('check_packages surfaces source review findings in batch output', async () => {
+      engine.checkPackages.mockResolvedValueOnce([
+        { name: 'evil', ok: true, result: sourceReviewedResult() },
+      ])
+      const tool = capturedTools.find((t) => t.name === 'check_packages')
+      const result = await tool.execute(
+        { names: ['evil'] },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(result).toContain('Source review')
+      expect(result).toContain('1 findings')
+    })
+  })
 })

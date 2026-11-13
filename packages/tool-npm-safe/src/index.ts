@@ -59,6 +59,25 @@ function rankedFindings<T extends FindingLike>(findings: readonly T[]): T[] {
   )
 }
 
+interface SecurityLike {
+  readonly staticScan: { readonly findings: readonly ScanFinding[] } | null
+  readonly llmScan?: {
+    readonly enabled: boolean
+    readonly findings?: readonly ScanFinding[]
+  }
+  readonly sourceReview?: { readonly findings: readonly ScanFinding[] }
+}
+
+// Source review can be enabled by a saved engine setting; keep its evidence in
+// the same ranked output instead of dropping it between the engine and the model.
+function collectFindings(security: SecurityLike): ScanFinding[] {
+  return [
+    ...(security.staticScan?.findings ?? []),
+    ...(security.llmScan?.enabled ? security.llmScan.findings ?? [] : []),
+    ...(security.sourceReview?.findings ?? []),
+  ]
+}
+
 // Scan results echo package-controlled text (names, versions, descriptions,
 // registry URLs, archive paths, LLM output); every rendered field must be
 // bounded or a single package can exhaust the model's context window.
@@ -112,6 +131,7 @@ function formatBatch(
           readonly enabled: boolean
           readonly findings?: readonly ScanFinding[]
         }
+        readonly sourceReview?: { readonly findings: readonly ScanFinding[] }
       }
     }
   }>,
@@ -121,10 +141,7 @@ function formatBatch(
       if (!(r.ok && r.result)) {
         return `${clip(r.name, MAX_NAME)}: ERROR ${clip(r.error ?? 'unknown error', MAX_ERROR)}`
       }
-      const findings = [
-        ...(r.result.security.staticScan?.findings ?? []),
-        ...(r.result.security.llmScan?.enabled ? r.result.security.llmScan.findings ?? [] : []),
-      ]
+      const findings = collectFindings(r.result.security)
       const shown = rankedFindings(findings).slice(0, MAX_BATCH_FINDINGS)
       const lines = [
         `${clip(r.name, MAX_NAME)}: ${r.result.security.overallLevel} ` +
@@ -303,10 +320,7 @@ export function apply(ctx: Context) {
         signal: exec.signal,
       })
       const contentScan = result.security.staticScan?.contentScan
-      const findings = [
-        ...(result.security.staticScan?.findings ?? []),
-        ...(result.security.llmScan?.enabled ? result.security.llmScan.findings ?? [] : []),
-      ]
+      const findings = collectFindings(result.security)
       const shown = rankedFindings(findings).slice(0, MAX_FINDINGS)
       return {
         package: clip(result.packageName, MAX_NAME),
