@@ -9,7 +9,7 @@ import {
   readProjectDependencies,
   shouldFailCi,
 } from '@npm-safe/core'
-import type { ScanFinding } from '@npm-safe/core'
+import type { CheckResult, ScanFinding } from '@npm-safe/core'
 type SearchResult = Awaited<ReturnType<SharedNpmSafeEngine['searchPackages']>>[number]
 
 export * from '@npm-safe/core'
@@ -32,6 +32,17 @@ export interface CiScanOptions {
   readonly prod?: boolean
   readonly deep?: boolean
   readonly signal?: AbortSignal
+}
+
+// Source review can be enabled by a saved engine setting, so its evidence must
+// participate in CI policy even when the facade did not opt in explicitly.
+function collectFindings(result: CheckResult): ScanFinding[] {
+  const { staticScan, llmScan, sourceReview } = result.security
+  return [
+    ...(staticScan?.findings ?? []),
+    ...(llmScan?.enabled ? llmScan.findings ?? [] : []),
+    ...(sourceReview?.findings ?? []),
+  ]
 }
 
 export interface PackageResult {
@@ -100,10 +111,7 @@ export class NpmSafeEngine extends SharedNpmSafeEngine {
         if (options.lockfile && dep.version && result.exists && result.latestVersion !== dep.version) {
           throw new Error(`Requested ${dep.name}@${dep.version} but checked ${result.latestVersion}`)
         }
-        const findings = [
-          ...(result.security.staticScan?.findings ?? []),
-          ...(result.security.llmScan?.enabled ? result.security.llmScan.findings ?? [] : []),
-        ]
+        const findings = collectFindings(result)
         const deepScanStatus = result.security.staticScan?.contentScan?.status
         const deepIncomplete = options.deep === true && deepScanStatus !== 'complete'
         const packageFailed = !result.exists
