@@ -137,7 +137,7 @@ The shared engine owns version selection, scanning, cache validity, lockfile
 traversal, failure policy, and cancellation. The facade only preserves the
 DSH search options form and formats CI reports. The engine provides:
 
-- **10 metadata rules plus 12 deep-content rules** for archive integrity, unsafe paths, remote shell execution, obfuscation, process execution, secrets, and binaries
+- **10 metadata rules plus 17 deep-content rules** for archive integrity, unsafe paths, remote shell execution, obfuscation, process execution, secrets, and binaries
 - **SQLite-backed caching** with TTL-based staleness (default 1 hour)
 - **TokenBucket rate limiter** (5 tokens/s, 10 burst) to prevent registry throttling
 - **Typed API** for programmatic use

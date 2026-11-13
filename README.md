@@ -11,7 +11,7 @@
 [![Node](https://img.shields.io/badge/Node.js-24.9%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![dsh-plugin](https://img.shields.io/badge/dsh--plugin-4D6BFE?style=flat-square)](https://github.com/topics/dsh-plugin)
 
-**14 agent tools · 22 security checks · integrity-verified deep scans · local SQLite cache**
+**14 agent tools · 27 security checks · integrity-verified deep scans · local SQLite cache**
 
 [Install](#30-second-install) · [See what it catches](#what-it-catches) · [Tool catalog](#14-agent-tools) · [中文](README_zh.md)
 
@@ -29,6 +29,10 @@ or DSH plugin installation. Configure your agent workflow to require a check
 of the exact version before installing; enforce a mandatory install policy
 in your host or CI separately. A `ci_scan` failure is a tool result that its
 caller must act on.
+
+<img src="docs/assets/dsh-architecture.svg" alt="A DSH agent calls one of 14 tools in the tool-npm-safe bundle; the compatibility facade forwards to the pinned @npm-safe/core scanner, which reads npm metadata and the published tarball and returns findings, level and score" width="100%">
+
+<sub>The agent picks a tool; the facade forwards to the pinned core; evidence comes back in the same turn. The plugin never intercepts install commands.</sub>
 
 > If this makes your agent workflow safer, please **Star the repository**. It
 > helps other DSH users find an independent security tool.
@@ -78,11 +82,15 @@ bounded source content entirely in memory.
 ```text
 package: fast-glob@3.3.3
 level: safe
-score: 88/100
+score: 97/100
 integrity: verified
-files scanned: 91
+files scanned: 53
 findings: 1 low, 0 medium, 0 high, 0 critical
 ```
+
+<img src="docs/assets/dsh-scan-output.svg" alt="Example check_package deep scan of fast-glob 3.3.3: level safe, score 97/100, one low finding about non-standard build metadata, 53 files scanned and integrity verified" width="100%">
+
+<sub>Actual deep-scan output from the pinned core on 2026-11-13. Findings and scores are evidence, not an install guarantee.</sub>
 
 ## Why use it in an agent
 
@@ -149,7 +157,7 @@ pnpm run typecheck
 pnpm run test
 ```
 
-The repository pins a release tarball of `@npm-safe/core@1.1.3` under `vendor/`
+The repository pins a release tarball of `@npm-safe/core@2.0.0` under `vendor/`
 through a workspace override. The scanner source is maintained only in
 [`nisconder/npm-safe`](https://github.com/nisconder/npm-safe). `packages/core`
 is a small compatibility facade, with no copied scanner, database, or registry
