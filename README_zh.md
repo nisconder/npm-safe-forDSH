@@ -11,7 +11,7 @@
 [![Node](https://img.shields.io/badge/Node.js-24.9%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![dsh-plugin](https://img.shields.io/badge/dsh--plugin-4D6BFE?style=flat-square)](https://github.com/topics/dsh-plugin)
 
-**14 个智能体工具 · 22 项安全检查 · 完整性验证深度扫描 · 本地 SQLite 缓存**
+**14 个智能体工具 · 27 项安全检查 · 完整性验证深度扫描 · 本地 SQLite 缓存**
 
 [安装](#30-秒安装) · [检测内容](#能检测什么) · [工具目录](#14-个智能体工具) · [English](README.md)
 
@@ -25,6 +25,10 @@
 插件提供智能体可调用的检查工具，不会统一拦截 shell 命令，也不会自动阻止
 所有 npm、pnpm、yarn 或 DSH 插件安装。请在智能体工作流中要求先检查将要安装的
 精确版本，并由宿主或 CI 强制执行安装策略。`ci_scan` 的失败结果需要调用方处理。
+
+<img src="docs/assets/dsh-architecture.zh.svg" alt="DSH 智能体调用 tool-npm-safe 的 14 个工具之一；兼容层转发到固定版本的 @npm-safe/core 扫描器，读取 npm 元数据和已发布 tarball，并返回发现、等级和评分" width="100%">
+
+<sub>智能体选择工具，兼容层转发到固定版本核心，证据在同一轮会话返回；插件不会拦截安装命令。</sub>
 
 > 如果它让你的智能体工作流更安全，请为仓库点一个 **Star**。这会帮助其他 DSH
 > 用户发现这个独立安全工具。
@@ -70,11 +74,15 @@ dsh --profile tui
 ```text
 package: fast-glob@3.3.3
 level: safe
-score: 88/100
+score: 97/100
 integrity: verified
-files scanned: 91
+files scanned: 53
 findings: 1 low, 0 medium, 0 high, 0 critical
 ```
+
+<img src="docs/assets/dsh-scan-output.zh.svg" alt="fast-glob 3.3.3 的真实 check_package 深扫结果：safe、97/100、1 条低危的非标准构建元数据发现、扫描 53 个文件且完整性校验通过" width="100%">
+
+<sub>固定版本核心在 2026-11-13 的真实深扫输出。发现与评分是证据，不构成安装保证。</sub>
 
 ## 为什么放进智能体
 
