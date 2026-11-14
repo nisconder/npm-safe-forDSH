@@ -2,6 +2,7 @@ import { NpmSafeEngine } from '@npm-safe/core-dsh'
 import type { CiReport, RuleDescriptor, ScanFinding, SecurityLevel, Severity } from '@npm-safe/core-dsh'
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 import type { JobOutcome } from '@deepseek-ai/dsh-jobs'
 // Loads the Context augmentation for ctx.workingDirectory.
 import type {} from '@deepseek-ai/dsh-working-directory'
@@ -26,6 +27,25 @@ const MAX_ERROR = 300
 const MAX_NAME = 214
 const MAX_VERSION = 100
 const MAX_CI_REPORT = 20_000
+const MAX_BATCH_SIZE = 50
+const MAX_CONCURRENCY = 10
+const MAX_SEARCH_RESULTS = 50
+const MAX_SETTING_KEY = 100
+const MAX_SETTING_VALUE = 1_000
+const SETTING_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
+
+// Tools that persist changes to the shared scanner configuration. Scan output
+// echoes package-controlled text, so a prompt-injected model must not be able
+// to silently weaken detection: route these through the host approval seam.
+// Deployments without an ApprovalService degrade `ask` to denial.
+const MUTATING_TOOLS = new Set([
+  'rule_enable',
+  'rule_disable',
+  'rule_set_severity',
+  'settings_set',
+  'watch_add',
+  'watch_remove',
+])
 
 const SEVERITY_RANK: Record<string, number> = {
   low: 0,
@@ -223,6 +243,20 @@ export function apply(ctx: Context) {
     engine.close()
   })
 
+  // Approval gate: mutating tools require explicit user confirmation before
+  // dispatch. The host ApprovalService resolves `ask`; without one the call is
+  // denied, so a prompt-injected model cannot silently disable rules or rewrite
+  // persisted settings.
+  ctx.on('tools/pre-execute', async (exec: ToolExecution, next) => {
+    if (MUTATING_TOOLS.has(exec.name)) {
+      return {
+        kind: 'ask' as const,
+        reason: `npm-safe: ${exec.name} persists a scanner configuration change`,
+      }
+    }
+    return next()
+  })
+
   // 1. check_package：前台工具，转发 exec.signal。
   ctx.tools.register(defineTool({
     name: 'check_package',
@@ -356,11 +390,11 @@ export function apply(ctx: Context) {
         type: 'array',
         required: true,
         items: { type: 'string' },
-        description: 'npm package names',
+        description: `npm package names (max ${MAX_BATCH_SIZE})`,
       },
       concurrency: {
         type: 'integer',
-        description: 'Max concurrent registry requests',
+        description: `Max concurrent registry requests (1–${MAX_CONCURRENCY})`,
       },
       deep: { type: 'boolean', description: 'Download and inspect every published tarball' },
     },
@@ -369,8 +403,17 @@ export function apply(ctx: Context) {
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args, exec) {
+      if (args.names.length === 0) {
+        throw new Error('names must contain at least one package')
+      }
+      if (args.names.length > MAX_BATCH_SIZE) {
+        throw new Error(`Too many packages: ${args.names.length} (max ${MAX_BATCH_SIZE})`)
+      }
+      const concurrency = args.concurrency === undefined
+        ? undefined
+        : Math.max(1, Math.min(MAX_CONCURRENCY, Math.floor(args.concurrency)))
       const results = await engine.checkPackages(args.names, {
-        concurrency: args.concurrency,
+        concurrency,
         deep: args.deep ?? false,
         signal: exec.signal,
       })
@@ -384,15 +427,18 @@ export function apply(ctx: Context) {
     description: 'Search the npm registry for packages by keyword.',
     parameters: {
       query: { type: 'string', required: true, description: 'Search keyword' },
-      limit: { type: 'integer', description: 'Max result count' },
+      limit: { type: 'integer', description: `Max result count (1–${MAX_SEARCH_RESULTS})` },
     },
     output: {
       schema: { type: 'string' },
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args, exec) {
+      const size = args.limit === undefined
+        ? undefined
+        : Math.max(1, Math.min(MAX_SEARCH_RESULTS, Math.floor(args.limit)))
       const rows = await engine.searchPackages(args.query, {
-        size: args.limit,
+        size,
         signal: exec.signal,
       })
       return rows
@@ -417,7 +463,7 @@ export function apply(ctx: Context) {
     },
     async execute(args) {
       await engine.addToWatchlist(args.name)
-      return `Watched ${args.name}`
+      return `Watched ${clip(args.name, MAX_NAME)}`
     },
   }))
 
@@ -433,7 +479,7 @@ export function apply(ctx: Context) {
     },
     async execute(args) {
       await engine.removeFromWatchlist(args.name)
-      return `Unwatched ${args.name}`
+      return `Unwatched ${clip(args.name, MAX_NAME)}`
     },
   }))
 
@@ -447,7 +493,7 @@ export function apply(ctx: Context) {
     },
     async execute() {
       const list = await engine.getWatchlist()
-      return list.length > 0 ? list.join('\n') : '(empty)'
+      return list.length > 0 ? list.map((n) => clip(n, MAX_NAME)).join('\n') : '(empty)'
     },
   }))
 
@@ -477,7 +523,7 @@ export function apply(ctx: Context) {
     },
     async execute(args) {
       engine.setRuleEnabled(args.ruleId, true)
-      return `Enabled rule ${args.ruleId}`
+      return `Enabled rule ${clip(args.ruleId, MAX_LABEL)}`
     },
   }))
 
@@ -493,7 +539,7 @@ export function apply(ctx: Context) {
     },
     async execute(args) {
       engine.setRuleEnabled(args.ruleId, false)
-      return `Disabled rule ${args.ruleId}`
+      return `Disabled rule ${clip(args.ruleId, MAX_LABEL)}`
     },
   }))
 
@@ -515,7 +561,7 @@ export function apply(ctx: Context) {
     },
     async execute(args) {
       engine.setRuleSeverity(args.ruleId, args.severity as Severity)
-      return `Rule ${args.ruleId} severity set to ${args.severity}`
+      return `Rule ${clip(args.ruleId, MAX_LABEL)} severity set to ${args.severity}`
     },
   }))
 
@@ -531,8 +577,11 @@ export function apply(ctx: Context) {
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args) {
+      if (!SETTING_KEY_PATTERN.test(args.key) || args.key.length > MAX_SETTING_KEY) {
+        throw new Error(`Invalid setting key: ${clip(args.key, MAX_LABEL)}`)
+      }
       const value = await engine.getSetting(args.key)
-      return `${args.key}=${value ?? '(unset)'}`
+      return `${args.key}=${value === null ? '(unset)' : clip(value, MAX_SETTING_VALUE)}`
     },
   }))
 
@@ -548,6 +597,12 @@ export function apply(ctx: Context) {
       render: (_args, value) => [{ type: 'text', text: value }],
     },
     async execute(args) {
+      if (!SETTING_KEY_PATTERN.test(args.key) || args.key.length > MAX_SETTING_KEY) {
+        throw new Error(`Invalid setting key: ${clip(args.key, MAX_LABEL)}`)
+      }
+      if (args.value.length > MAX_SETTING_VALUE) {
+        throw new Error(`Setting value too long (max ${MAX_SETTING_VALUE} characters)`)
+      }
       await engine.setSetting(args.key, args.value)
       return `Setting ${args.key} written`
     },
