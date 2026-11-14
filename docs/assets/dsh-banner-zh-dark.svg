@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">npm-safe for DeepSeek Harness 横幅</title>
+  <desc id="desc">npm-safe-forDSH 插件横幅：先检查，再让智能体安装。14 个智能体工具、27 项安全规则、完整性验证深度扫描、本地 SQLite 缓存。</desc>
+  <defs>
+    <style>
+      .sans { font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", "Segoe UI", sans-serif; }
+      .mono { font-family: "IBM Plex Mono", "Cascadia Mono", "Consolas", monospace; }
+    </style>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#5b6b78"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="300" rx="20" fill="#0f1216" stroke="#2a3138"/>
+
+  <text x="60" y="62" class="sans" fill="#8b98a3" font-size="12" letter-spacing="2">NPM-SAFE FOR DEEPSEEK HARNESS</text>
+  <text x="60" y="118" class="sans" fill="#e8eef2" font-size="40" font-weight="700">先检查，再让智能体安装。</text>
+  <text x="60" y="152" class="sans" fill="#a9b7c2" font-size="15">面向 DSH 智能体的 npm 供应链安全工具——同一轮会话返回证据、风险等级与评分。</text>
+
+  <g class="sans" font-size="12">
+    <rect x="60" y="188" width="176" height="36" rx="18" fill="#101820" stroke="#2b3a4a"/>
+    <text x="148" y="211" text-anchor="middle" fill="#6ea8fe">14 个智能体工具</text>
+    <rect x="250" y="188" width="196" height="36" rx="18" fill="#12251d" stroke="#3f8f6f"/>
+    <text x="348" y="211" text-anchor="middle" fill="#5ec99d">27 项安全规则</text>
+    <rect x="460" y="188" width="216" height="36" rx="18" fill="#241d12" stroke="#8a6a3a"/>
+    <text x="568" y="211" text-anchor="middle" fill="#f0b46a">完整性验证深度扫描</text>
+    <rect x="690" y="188" width="186" height="36" rx="18" fill="#1c1626" stroke="#5d4a86"/>
+    <text x="783" y="211" text-anchor="middle" fill="#b28df5">本地 SQLite 缓存</text>
+  </g>
+  <text x="60" y="262" class="sans" fill="#8b98a3" font-size="12">只提供工具——插件不拦截安装命令；安装策略由你的智能体或 CI 执行。</text>
+
+  <g>
+    <rect x="920" y="64" width="220" height="46" rx="10" fill="#151a1f" stroke="#2a3138"/>
+    <rect x="920" y="64" width="5" height="46" rx="2.5" fill="#6ea8fe"/>
+    <text x="940" y="92" class="sans" fill="#e8eef2" font-size="13.5" font-weight="700">DSH 智能体</text>
+
+    <rect x="920" y="128" width="220" height="46" rx="10" fill="#151a1f" stroke="#2a3138"/>
+    <rect x="920" y="128" width="5" height="46" rx="2.5" fill="#5ec99d"/>
+    <text x="940" y="156" class="sans" fill="#e8eef2" font-size="13.5" font-weight="700">tool-npm-safe</text>
+
+    <rect x="920" y="192" width="220" height="46" rx="10" fill="#151a1f" stroke="#2a3138"/>
+    <rect x="920" y="192" width="5" height="46" rx="2.5" fill="#b28df5"/>
+    <text x="940" y="220" class="sans" fill="#e8eef2" font-size="13.5" font-weight="700">固定版本核心</text>
+
+    <line x1="1030" y1="110" x2="1030" y2="124" stroke="#5b6b78" stroke-width="1.6" marker-end="url(#arrow)"/>
+    <line x1="1030" y1="174" x2="1030" y2="188" stroke="#5b6b78" stroke-width="1.6" marker-end="url(#arrow)"/>
+  </g>
+</svg>

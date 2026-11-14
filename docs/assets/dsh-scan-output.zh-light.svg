@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">check_package 深度扫描结果示例</title>
+  <desc id="desc">对 fast-glob 3.3.3 的真实深度扫描返回：等级 safe、评分 97/100、1 条关于非标准构建元数据的低危发现、扫描 53 个文件且完整性校验通过。</desc>
+  <defs>
+    <style>
+      .sans { font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", "Segoe UI", sans-serif; }
+      .mono { font-family: "IBM Plex Mono", "Cascadia Mono", "Consolas", monospace; }
+      .white { fill: #16202b; }
+      .body { fill: #3d4c59; }
+      .muted { fill: #5b6b78; }
+    </style>
+  </defs>
+  <rect width="1200" height="520" fill="#f7f9fb"/>
+
+  <text x="40" y="42" class="sans muted" font-size="12" letter-spacing="2">CHECK_PACKAGE / 深度扫描</text>
+  <text x="1160" y="42" text-anchor="end" class="sans muted" font-size="12">真实运行 · 2026-11-13</text>
+
+  <!-- result card -->
+  <rect x="40" y="80" width="740" height="400" rx="18" fill="#ffffff" stroke="#d5dde5"/>
+  <text x="76" y="118" class="sans muted" font-size="11" letter-spacing="1.5">扫描结果</text>
+  <text x="76" y="160" class="mono white" font-size="28" font-weight="700">fast-glob@3.3.3</text>
+
+  <rect x="592" y="102" width="156" height="62" rx="12" fill="#e9f7f0" stroke="#7fc9a8"/>
+  <text x="670" y="132" text-anchor="middle" class="sans" fill="#0f7a4d" font-size="20" font-weight="700" letter-spacing="1">安全</text>
+  <text x="670" y="153" text-anchor="middle" class="mono" fill="#0f7a4d" font-size="12">97 / 100</text>
+
+  <text x="76" y="194" class="sans muted" font-size="11.5">深扫完成 · 53 个文件 · 完整性校验通过</text>
+  <line x1="76" y1="214" x2="744" y2="214" stroke="#d5dde5"/>
+
+  <text x="76" y="244" class="sans muted" font-size="11" letter-spacing="1.5">发现 · 1</text>
+
+  <rect x="76" y="258" width="668" height="110" rx="12" fill="#f2f5f8" stroke="#d5dde5"/>
+  <rect x="92" y="274" width="50" height="22" rx="6" fill="#eef4fd" stroke="#9db9dd"/>
+  <text x="117" y="290" text-anchor="middle" class="sans" fill="#1d4f91" font-size="10.5" letter-spacing="1">低危</text>
+  <text x="156" y="290" class="mono" fill="#1f2d3a" font-size="12.5">suspicious-build-metadata</text>
+  <text x="92" y="324" class="sans body" font-size="12.5">Non-standard metadata field "_hasShrinkwrap"</text>
+  <text x="92" y="343" class="sans body" font-size="12.5">present in package.json.</text>
+
+  <text x="76" y="402" class="sans muted" font-size="11.5">所有渲染字段在进入模型前按长度截断。</text>
+  <text x="76" y="422" class="sans muted" font-size="11.5">发现按严重度排序；深扫附带文件与行号证据。</text>
+  <text x="76" y="450" class="sans" fill="#0f7a4d" font-size="11">不会执行安装命令</text>
+
+  <!-- model view -->
+  <rect x="810" y="80" width="350" height="400" rx="18" fill="#ffffff" stroke="#d5dde5"/>
+  <text x="838" y="118" class="sans muted" font-size="11" letter-spacing="1.5">模型收到</text>
+  <line x1="838" y1="134" x2="1132" y2="134" stroke="#d5dde5"/>
+
+  <text x="838" y="166" class="mono" fill="#5b6b78" font-size="12">level</text>
+  <text x="1132" y="166" text-anchor="end" class="mono white" font-size="12.5">safe</text>
+  <text x="838" y="200" class="mono" fill="#5b6b78" font-size="12">score</text>
+  <text x="1132" y="200" text-anchor="end" class="mono white" font-size="12.5">97</text>
+  <text x="838" y="234" class="mono" fill="#5b6b78" font-size="12">findingCount</text>
+  <text x="1132" y="234" text-anchor="end" class="mono white" font-size="12.5">1</text>
+  <text x="838" y="268" class="mono" fill="#5b6b78" font-size="12">deepScanStatus</text>
+  <text x="1132" y="268" text-anchor="end" class="mono white" font-size="12.5">complete</text>
+  <text x="838" y="302" class="mono" fill="#5b6b78" font-size="12">filesScanned</text>
+  <text x="1132" y="302" text-anchor="end" class="mono white" font-size="12.5">53</text>
+  <text x="838" y="336" class="mono" fill="#5b6b78" font-size="12">integrityVerified</text>
+  <text x="1132" y="336" text-anchor="end" class="mono white" font-size="12.5">true</text>
+  <text x="838" y="370" class="mono" fill="#5b6b78" font-size="12">findingsTruncated</text>
+  <text x="1132" y="370" text-anchor="end" class="mono white" font-size="12.5">false</text>
+
+  <line x1="838" y1="392" x2="1132" y2="392" stroke="#d5dde5"/>
+  <text x="838" y="416" class="sans body" font-size="11.5">结论与证据，不是 shell 钩子。</text>
+  <text x="838" y="436" class="sans muted" font-size="11.5">是否安装由智能体决定。</text>
+
+  <text x="600" y="508" text-anchor="middle" class="sans muted" font-size="11.5">固定版本核心在 2026-11-13 的真实深扫输出。证据不构成安装保证。</text>
+</svg>

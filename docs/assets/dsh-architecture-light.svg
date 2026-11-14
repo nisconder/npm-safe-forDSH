@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">npm-safe for DSH request path</title>
+  <desc id="desc">A DSH agent calls one of 14 tools in the tool-npm-safe bundle. The bundle forwards through the compatibility facade to the pinned @npm-safe/core scanner, which reads npm metadata and the published tarball and returns findings, level and score to the agent.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .sans { font-family: "IBM Plex Sans", "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+      .mono { font-family: "IBM Plex Mono", "Cascadia Mono", "Consolas", monospace; }
+      .white { fill: #16202b; }
+      .body { fill: #3d4c59; }
+      .muted { fill: #5b6b78; }
+      .green { fill: #0f7a4d; }
+    </style>
+  </defs>
+  <rect width="1200" height="560" fill="#f7f9fb"/>
+
+  <text x="40" y="42" class="mono muted" font-size="12" letter-spacing="2">NPM-SAFE FOR DSH / REQUEST PATH</text>
+  <text x="40" y="74" class="sans white" font-size="22" font-weight="700">One tool call, four hops, one evidence-backed verdict</text>
+  <text x="1160" y="42" text-anchor="end" class="mono muted" font-size="12">STATIC FIRST · DEEP ON DEMAND</text>
+
+  <!-- 01 agent -->
+  <g>
+    <rect x="40" y="110" width="230" height="270" rx="16" fill="#ffffff" stroke="#d5dde5"/>
+    <rect x="40" y="110" width="6" height="270" rx="3" fill="#2563eb"/>
+    <text x="66" y="142" class="mono muted" font-size="11" letter-spacing="1.5">01 / AGENT</text>
+    <text x="66" y="174" class="sans white" font-size="18" font-weight="700">DSH agent</text>
+    <text x="66" y="206" class="sans body" font-size="12.5">Chooses a tool and reads</text>
+    <text x="66" y="226" class="sans body" font-size="12.5">the returned evidence.</text>
+    <rect x="60" y="266" width="190" height="82" rx="10" fill="#eef3f8" stroke="#c9d6e2"/>
+    <text x="74" y="292" class="mono" fill="#24425f" font-size="11">"Deep-scan fast-glob</text>
+    <text x="74" y="311" class="mono" fill="#24425f" font-size="11">before installing it."</text>
+    <text x="74" y="332" class="mono muted" font-size="10">same conversation turn</text>
+    <text x="66" y="368" class="sans muted" font-size="11">picks the tool itself</text>
+  </g>
+
+  <!-- 02 tool bundle -->
+  <g>
+    <rect x="290" y="110" width="280" height="270" rx="16" fill="#ffffff" stroke="#d5dde5"/>
+    <rect x="290" y="110" width="6" height="270" rx="3" fill="#0f9d6a"/>
+    <text x="316" y="142" class="mono muted" font-size="11" letter-spacing="1.5">02 / TOOL BUNDLE</text>
+    <text x="316" y="174" class="sans white" font-size="18" font-weight="700">tool-npm-safe</text>
+    <text x="316" y="198" class="mono muted" font-size="11">14 tools · native DSH bundle</text>
+    <circle cx="322" cy="226" r="3" fill="#0f9d6a"/>
+    <text x="334" y="230" class="mono" fill="#24425f" font-size="11.5">check_package · check_packages</text>
+    <circle cx="322" cy="250" r="3" fill="#0f9d6a"/>
+    <text x="334" y="254" class="mono" fill="#24425f" font-size="11.5">ci_scan · search_packages</text>
+    <circle cx="322" cy="274" r="3" fill="#0f9d6a"/>
+    <text x="334" y="278" class="mono" fill="#24425f" font-size="11.5">watch_* · rules_* · settings_*</text>
+    <circle cx="322" cy="298" r="3" fill="#0f9d6a"/>
+    <text x="334" y="302" class="mono" fill="#24425f" font-size="11.5">refresh_all (background job)</text>
+    <text x="316" y="346" class="sans body" font-size="11.5">Foreground tools forward cancellation.</text>
+    <text x="316" y="364" class="sans muted" font-size="11">The agent decides when to call them.</text>
+  </g>
+
+  <!-- 03 facade -->
+  <g>
+    <rect x="590" y="110" width="250" height="270" rx="16" fill="#ffffff" stroke="#d5dde5"/>
+    <rect x="590" y="110" width="6" height="270" rx="3" fill="#d97706"/>
+    <text x="616" y="142" class="mono muted" font-size="11" letter-spacing="1.5">03 / FACADE</text>
+    <text x="616" y="176" class="mono white" font-size="14" font-weight="700">@npm-safe/core-dsh</text>
+    <text x="616" y="200" class="sans body" font-size="12">Thin compatibility layer</text>
+    <text x="616" y="232" class="sans body" font-size="12">legacy search() options</text>
+    <text x="616" y="254" class="sans body" font-size="12">ci_scan report shape</text>
+    <text x="616" y="276" class="sans body" font-size="12">no scanner or cache code</text>
+    <text x="616" y="346" class="sans muted" font-size="11">depends on one exact core version</text>
+  </g>
+
+  <!-- 04 core -->
+  <g>
+    <rect x="860" y="110" width="300" height="270" rx="16" fill="#ffffff" stroke="#d5dde5"/>
+    <rect x="860" y="110" width="6" height="270" rx="3" fill="#7c3aed"/>
+    <text x="886" y="142" class="mono muted" font-size="11" letter-spacing="1.5">04 / SHARED CORE</text>
+    <text x="886" y="176" class="mono white" font-size="15" font-weight="700">@npm-safe/core 2.0.2</text>
+    <text x="886" y="208" class="sans body" font-size="12">10 metadata rules</text>
+    <text x="886" y="230" class="sans body" font-size="12">17 deep-content rules</text>
+    <text x="886" y="252" class="sans body" font-size="12">SQLite cache · TTL</text>
+    <text x="886" y="274" class="sans body" font-size="12">lockfile traversal · CI gate</text>
+    <text x="886" y="296" class="sans body" font-size="12">opt-in source review (off)</text>
+    <text x="886" y="346" class="sans muted" font-size="11">vendor tarball + SHA-512</text>
+  </g>
+
+  <!-- flow arrows -->
+  <line x1="270" y1="245" x2="284" y2="245" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="570" y1="245" x2="584" y2="245" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="840" y1="245" x2="854" y2="245" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- sources -->
+  <g>
+    <rect x="860" y="410" width="145" height="72" rx="12" fill="#eef3f8" stroke="#c9d6e2"/>
+    <text x="874" y="434" class="mono muted" font-size="9.5" letter-spacing="1">SOURCE 1</text>
+    <text x="874" y="456" class="sans white" font-size="12.5">npm registry</text>
+    <text x="874" y="472" class="sans muted" font-size="10.5">package metadata</text>
+    <rect x="1015" y="410" width="145" height="72" rx="12" fill="#eef3f8" stroke="#c9d6e2"/>
+    <text x="1029" y="434" class="mono muted" font-size="9.5" letter-spacing="1">SOURCE 2</text>
+    <text x="1029" y="456" class="sans white" font-size="12.5">published tarball</text>
+    <text x="1029" y="472" class="sans muted" font-size="10.5">integrity checked</text>
+    <line x1="932" y1="410" x2="932" y2="386" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <line x1="1087" y1="410" x2="1087" y2="386" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- return path -->
+  <path d="M 1087 482 V 510 H 155 V 386" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+  <rect x="432" y="492" width="336" height="24" rx="8" fill="#f7f9fb"/>
+  <text x="600" y="508" text-anchor="middle" class="mono muted" font-size="11">findings · level · score · evidence back to the agent</text>
+
+  <text x="600" y="546" text-anchor="middle" class="sans muted" font-size="11.5">The plugin registers tools; it never intercepts npm, pnpm, yarn or dsh plugin commands.</text>
+</svg>
