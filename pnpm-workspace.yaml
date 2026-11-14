@@ -2,6 +2,15 @@ packages:
   - packages/*
 overrides:
   '@npm-safe/core': file:vendor/npm-safe-core-2.0.2.tgz
+  # Security: undici <6.29.1 has TLS-validation-bypass and DoS advisories
+  # (GHSA-2m5v-pch6-74hx, GHSA-xjj6-f33q-929c, GHSA-rfgv-xxqx-mfg5, ...).
+  # The pinned core declares ^6.28.0; force the patched line until upstream
+  # releases a core that requires it directly.
+  undici: ^6.29.1
+  # Dev-only: vitest 4.x pulls vite 7.3.6 and source-map-js 1.2.1 which have
+  # launch-editor command-execution and DoS advisories. Force patched lines.
+  vite: 7.3.8
+  source-map-js: ^1.2.2
 allowBuilds:
   better-sqlite3: true
   esbuild: true

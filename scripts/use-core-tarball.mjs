@@ -20,6 +20,11 @@ for (let offset = 0; offset + 512 <= archive.length;) {
   const header = archive.subarray(offset, offset + 512)
   if (header.every(byte => byte === 0)) break
   const name = header.subarray(0, 100).toString().replace(/\0.*$/s, '')
+  // Reject path traversal and absolute entries before they can influence any
+  // filesystem path derived from the archive (e.g. the --verify comparison).
+  if (name.split('/').includes('..') || path.isAbsolute(name) || /^[a-zA-Z]:/.test(name)) {
+    throw new Error(`Unsafe archive entry name: ${name}`)
+  }
   const size = Number.parseInt(header.subarray(124, 136).toString().trim().replace(/\0.*$/s, ''), 8)
   if (!Number.isSafeInteger(size) || size < 0 || offset + 512 + size > archive.length) {
     throw new Error('Invalid npm package archive')

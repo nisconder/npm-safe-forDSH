@@ -117,6 +117,7 @@ function createStubContext() {
   const capturedTools: any[] = []
   const capturedJobSpecs: any[] = []
   const capturedCleanups: Array<() => void> = []
+  const capturedListeners: Array<{ event: string; listener: (...args: any[]) => any }> = []
   const workingDirectory = {
     ensure: vi.fn(async () => '/workspace'),
   }
@@ -140,9 +141,13 @@ function createStubContext() {
       capturedCleanups.push(cleanup)
       return () => cleanup()
     },
+    on(event: string, listener: (...args: any[]) => any) {
+      capturedListeners.push({ event, listener })
+      return () => {}
+    },
   }
 
-  return { ctx, capturedTools, capturedJobSpecs, capturedCleanups, workingDirectory }
+  return { ctx, capturedTools, capturedJobSpecs, capturedCleanups, capturedListeners, workingDirectory }
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +158,7 @@ describe('tool-npm-safe plugin', () => {
   let capturedJobSpecs: any[]
   let engine: any
   let capturedCleanups: Array<() => void>
+  let capturedListeners: Array<{ event: string; listener: (...args: any[]) => any }>
   let workingDirectory: { ensure: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
@@ -162,6 +168,7 @@ describe('tool-npm-safe plugin', () => {
     capturedTools = stub.capturedTools
     capturedJobSpecs = stub.capturedJobSpecs
     capturedCleanups = stub.capturedCleanups
+    capturedListeners = stub.capturedListeners
     workingDirectory = stub.workingDirectory
     engine = mock.instances[0]
   })
@@ -665,6 +672,91 @@ describe('tool-npm-safe plugin', () => {
       )
       expect(result).toContain('Source review')
       expect(result).toContain('1 findings')
+    })
+  })
+
+  describe('security hardening', () => {
+    it('registers a tools/pre-execute approval gate for mutating tools', async () => {
+      const gate = capturedListeners.find((l) => l.event === 'tools/pre-execute')
+      expect(gate).toBeDefined()
+      const next = vi.fn(async () => ({ kind: 'allow' as const }))
+      const decision = await gate!.listener({ name: 'rule_disable' } as any, next)
+      expect(decision).toEqual({
+        kind: 'ask',
+        reason: expect.stringContaining('rule_disable'),
+      })
+      expect(next).not.toHaveBeenCalled()
+    })
+
+    it('approval gate passes read-only tools through to next()', async () => {
+      const gate = capturedListeners.find((l) => l.event === 'tools/pre-execute')
+      const next = vi.fn(async () => ({ kind: 'allow' as const }))
+      const decision = await gate!.listener({ name: 'check_package' } as any, next)
+      expect(decision).toEqual({ kind: 'allow' })
+      expect(next).toHaveBeenCalledOnce()
+    })
+
+    it('check_packages rejects batches exceeding the size limit', async () => {
+      const tool = capturedTools.find((t) => t.name === 'check_packages')
+      const names = Array.from({ length: 51 }, (_, i) => `pkg-${i}`)
+      await expect(
+        tool.execute({ names }, { signal: new AbortController().signal } as any),
+      ).rejects.toThrow('Too many packages')
+      expect(engine.checkPackages).not.toHaveBeenCalled()
+    })
+
+    it('check_packages rejects an empty batch', async () => {
+      const tool = capturedTools.find((t) => t.name === 'check_packages')
+      await expect(
+        tool.execute({ names: [] }, { signal: new AbortController().signal } as any),
+      ).rejects.toThrow('at least one')
+    })
+
+    it('check_packages clamps concurrency to the allowed range', async () => {
+      engine.checkPackages.mockResolvedValueOnce([
+        { name: 'a', ok: true, result: { exists: true, security: { overallLevel: 'safe', overallScore: 90, staticScan: { findings: [] } } } },
+      ])
+      const tool = capturedTools.find((t) => t.name === 'check_packages')
+      await tool.execute(
+        { names: ['a'], concurrency: 999 },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(engine.checkPackages).toHaveBeenCalledWith(['a'], expect.objectContaining({ concurrency: 10 }))
+    })
+
+    it('search_packages clamps limit to the allowed range', async () => {
+      const tool = capturedTools.find((t) => t.name === 'search_packages')
+      await tool.execute(
+        { query: 'test', limit: 999 },
+        { signal: new AbortController().signal } as any,
+      )
+      expect(engine.searchPackages).toHaveBeenCalledWith('test', expect.objectContaining({ size: 50 }))
+    })
+
+    it('settings_set rejects keys with invalid characters', async () => {
+      const tool = capturedTools.find((t) => t.name === 'settings_set')
+      await expect(tool.execute({ key: '../etc/passwd', value: 'x' })).rejects.toThrow('Invalid setting key')
+      expect(engine.setSetting).not.toHaveBeenCalled()
+    })
+
+    it('settings_set rejects values exceeding the length limit', async () => {
+      const tool = capturedTools.find((t) => t.name === 'settings_set')
+      await expect(
+        tool.execute({ key: 'validKey', value: 'x'.repeat(1001) }),
+      ).rejects.toThrow('too long')
+      expect(engine.setSetting).not.toHaveBeenCalled()
+    })
+
+    it('settings_get rejects invalid keys', async () => {
+      const tool = capturedTools.find((t) => t.name === 'settings_get')
+      await expect(tool.execute({ key: 'bad key!' })).rejects.toThrow('Invalid setting key')
+    })
+
+    it('watch_add clips the echoed package name', async () => {
+      const tool = capturedTools.find((t) => t.name === 'watch_add')
+      const result = await tool.execute({ name: 'n'.repeat(500) })
+      expect(result.length).toBeLessThanOrEqual(230)
+      expect(result).not.toContain('n'.repeat(300))
     })
   })
 })
